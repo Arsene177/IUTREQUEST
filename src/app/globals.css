@@ -1,0 +1,104 @@
+@import "tailwindcss";
+
+/* ============================================================
+   IUTRequest — Design tokens
+   Portail étudiant — IUT de Douala
+   ============================================================ */
+
+:root {
+  /* Surfaces */
+  --color-cream: #fefce8;       /* fond sidebar / cartes */
+  --color-cream-soft: #fdfbe8;  /* variante légèrement plus claire */
+  --color-cream-line: #e8e4c5;  /* séparateurs sur fond crème */
+  --color-canvas: #e3e1e1;      /* fond gris clair de la zone de contenu */
+  --color-canvas-soft: #ececec;
+
+  /* Marque */
+  --color-brand: #1e1bff;       /* bleu vif — actions principales */
+  --color-brand-dark: #1614cc;  /* hover / pressed */
+  --color-brand-soft: #e7e6ff;  /* fonds légers sur boutons secondaires */
+
+  /* Texte */
+  --color-ink: #15161a;         /* texte fort */
+  --color-ink-muted: #6b6f76;   /* texte secondaire (labels, placeholders) */
+  --color-ink-faint: #9a9da3;
+
+  /* Statuts requêtes */
+  --color-status-attente: #f59e0b;
+  --color-status-attente-bg: #fef3e2;
+  --color-status-cours: #0ea5e9;
+  --color-status-cours-bg: #e3f5fc;
+  --color-status-info: #a855f7;
+  --color-status-info-bg: #f4e9fd;
+  --color-status-validee: #22c55e;
+  --color-status-validee-bg: #e7f8ec;
+  --color-status-execution: #3b82f6;
+  --color-status-execution-bg: #e7eefd;
+  --color-status-rejetee: #ef4444;
+  --color-status-rejetee-bg: #fce8e8;
+  --color-status-cloturee: #6b7280;
+  --color-status-cloturee-bg: #ececec;
+
+  /* Feedback */
+  --color-danger: #dc2626;
+  --color-danger-soft: #fde8e8;
+  --color-success: #16a34a;
+  --color-success-soft: #e7f8ec;
+  --color-warning: #ea580c;
+
+  --radius-card: 1rem;
+  --radius-control: 0.6rem;
+}
+
+@theme inline {
+  --color-cream: var(--color-cream);
+  --color-cream-soft: var(--color-cream-soft);
+  --color-cream-line: var(--color-cream-line);
+  --color-canvas: var(--color-canvas);
+  --color-canvas-soft: var(--color-canvas-soft);
+
+  --color-brand: var(--color-brand);
+  --color-brand-dark: var(--color-brand-dark);
+  --color-brand-soft: var(--color-brand-soft);
+
+  --color-ink: var(--color-ink);
+  --color-ink-muted: var(--color-ink-muted);
+  --color-ink-faint: var(--color-ink-faint);
+
+  --color-status-attente: var(--color-status-attente);
+  --color-status-attente-bg: var(--color-status-attente-bg);
+  --color-status-cours: var(--color-status-cours);
+  --color-status-cours-bg: var(--color-status-cours-bg);
+  --color-status-info: var(--color-status-info);
+  --color-status-info-bg: var(--color-status-info-bg);
+  --color-status-validee: var(--color-status-validee);
+  --color-status-validee-bg: var(--color-status-validee-bg);
+  --color-status-execution: var(--color-status-execution);
+  --color-status-execution-bg: var(--color-status-execution-bg);
+  --color-status-rejetee: var(--color-status-rejetee);
+  --color-status-rejetee-bg: var(--color-status-rejetee-bg);
+  --color-status-cloturee: var(--color-status-cloturee);
+  --color-status-cloturee-bg: var(--color-status-cloturee-bg);
+
+  --color-danger: var(--color-danger);
+  --color-danger-soft: var(--color-danger-soft);
+  --color-success: var(--color-success);
+  --color-success-soft: var(--color-success-soft);
+  --color-warning: var(--color-warning);
+
+  --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+}
+
+body {
+  background: var(--color-canvas);
+  color: var(--color-ink);
+  font-family: var(--font-sans);
+}
+
+.scrollbar-thin::-webkit-scrollbar {
+  width: 6px;
+}
+.scrollbar-thin::-webkit-scrollbar-thumb {
+  background: var(--color-cream-line);
+  border-radius: 999px;
+}
