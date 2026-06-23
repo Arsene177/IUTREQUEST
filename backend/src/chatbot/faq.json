@@ -1,0 +1,52 @@
+[
+  {
+    "keywords": ["délai", "temps", "combien de temps", "quand"],
+    "question": "Quels sont les délais de traitement d'une requête ?",
+    "answer": "Les délais varient selon le type de requête. En général, les requêtes sont traitées sous 3 à 5 jours ouvrables. Pour des demandes plus complexes nécessitant une validation par la direction, cela peut prendre jusqu'à 2 semaines."
+  },
+  {
+    "keywords": ["contact", "contacter", "téléphone", "email", "joindre"],
+    "question": "Comment puis-je contacter l'administration de l'IUT ?",
+    "answer": "Vous pouvez contacter le secrétariat par email à l'adresse secretariat@iut.edu, par téléphone au 01 23 45 67 89, ou vous présenter à l'accueil du bâtiment principal entre 8h30 et 17h00."
+  },
+  {
+    "keywords": ["documents", "pièces justificatives", "justificatif", "papier"],
+    "question": "Quels documents sont nécessaires pour mes requêtes ?",
+    "answer": "Cela dépend de la requête. Pour un effet académique (ex: absence), un justificatif médical ou professionnel est souvent requis. Pour une correction de nom, une pièce d'identité officielle est nécessaire. Les documents précis vous seront demandés lors du remplissage du formulaire."
+  },
+  {
+    "keywords": ["absence", "malade", "maladie", "justifier", "manqué", "effet académique"],
+    "question": "Comment justifier une absence (Effet académique) ?",
+    "answer": "Si vous avez manqué un cours ou un examen pour une raison valable (maladie, urgence), vous devez soumettre une requête d'« Effet académique » accompagnée de vos justificatifs (ex: certificat médical) dans les 48 heures suivant votre absence."
+  },
+  {
+    "keywords": ["nom", "prénom", "erreur", "orthographe", "correction de nom"],
+    "question": "Comment corriger une erreur dans mon nom ou prénom ?",
+    "answer": "Si votre nom ou prénom est mal orthographié sur les documents de l'IUT, vous devez soumettre une requête de « Correction de nom » en joignant une copie de votre carte d'identité ou passeport valide."
+  },
+  {
+    "keywords": ["note", "erreur note", "contestation", "révision", "revoir"],
+    "question": "Comment contester ou demander la révision d'une note ?",
+    "answer": "Pour contester une note, vous devez d'abord en discuter avec le professeur concerné. Si le problème persiste, vous pouvez soumettre une requête de « Contestation de note » en fournissant tous les éléments justifiant votre demande (copie de l'examen, etc.)."
+  },
+  {
+    "keywords": ["état", "statut", "suivre", "avancement"],
+    "question": "Comment puis-je suivre l'état de ma requête ?",
+    "answer": "Vous pouvez suivre l'état de vos requêtes en vous connectant à votre portail étudiant et en naviguant vers la section 'Mes Requêtes'. Le statut sera mis à jour en temps réel (En attente, En traitement, Validé, Rejeté)."
+  },
+  {
+    "keywords": ["modifier", "changer", "annuler", "supprimer"],
+    "question": "Puis-je modifier ou annuler une requête soumise ?",
+    "answer": "Tant que votre requête est au statut 'En attente' (non encore réceptionnée par le secrétariat), vous pouvez l'annuler depuis votre tableau de bord. Une fois en cours de traitement, il n'est plus possible de la modifier ou de l'annuler directement."
+  },
+  {
+    "keywords": ["mot de passe", "connexion", "compte", "accès"],
+    "question": "J'ai oublié mon mot de passe ou je n'arrive pas à me connecter, que faire ?",
+    "answer": "Veuillez utiliser le lien 'Mot de passe oublié' sur la page de connexion. Si le problème persiste, veuillez contacter le support informatique de l'IUT à support.it@iut.edu."
+  },
+  {
+    "keywords": ["horaires", "ouverture", "fermeture", "secrétariat"],
+    "question": "Quels sont les horaires d'ouverture du secrétariat ?",
+    "answer": "Le secrétariat de l'IUT est ouvert du lundi au vendredi, de 8h30 à 12h30 et de 13h30 à 17h00. Il est fermé le week-end et les jours fériés."
+  }
+]

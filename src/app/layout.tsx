@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import { Inter } from 'next/font/google';
 import './globals.css';
 import { AuthProvider } from '@/context/AuthContext';
+import ChatbotWidget from '@/components/ChatbotWidget';
 
 const inter = Inter({ subsets: ['latin'] });
 
@@ -20,6 +21,7 @@ export default function RootLayout({
       <body className={inter.className}>
         <AuthProvider>
           {children}
+          <ChatbotWidget />
         </AuthProvider>
         {/* Supprime le bouton flottant Next.js en dev */}
         <style>{`
