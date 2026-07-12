@@ -1,5 +1,5 @@
 import { format } from "date-fns";
-import { fr } from "date-fns/locale";
+import { fr } from "date-fns/locale/fr";
 
 export function formatDate(value: string | Date, pattern = "dd/MM/yyyy"): string {
   const date = typeof value === "string" ? new Date(value) : value;
