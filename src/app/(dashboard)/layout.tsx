@@ -1,7 +1,7 @@
 "use client";
 
 import { RequireAuth } from "@/components/layout/RequireAuth";
-import { Sidebar } from "@/components/layout/Sidebar";
+import Sidebar from "@/components/layout/Sidebar";
 import { MobileSidebarProvider } from "@/context/MobileSidebarContext";
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {

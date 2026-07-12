@@ -1,10 +1,8 @@
 import type { Metadata } from 'next';
-import { Inter } from 'next/font/google';
 import './globals.css';
 import { AuthProvider } from '@/context/AuthContext';
+import { ToastProvider } from '@/context/ToastContext';
 import ChatbotWidget from '@/components/ChatbotWidget';
-
-const inter = Inter({ subsets: ['latin'] });
 
 export const metadata: Metadata = {
   title: 'JANNGO — IUT de Douala',
@@ -18,10 +16,12 @@ export default function RootLayout({
 }) {
   return (
     <html lang="fr">
-      <body className={inter.className}>
+      <body className="min-h-screen bg-white text-slate-900 antialiased">
         <AuthProvider>
-          {children}
-          <ChatbotWidget />
+          <ToastProvider>
+            {children}
+            <ChatbotWidget />
+          </ToastProvider>
         </AuthProvider>
         {/* Supprime le bouton flottant Next.js en dev */}
         <style>{`

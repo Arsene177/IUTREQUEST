@@ -4,7 +4,6 @@ import { useMemo, useState } from "react";
 import { Header } from "@/components/layout/Header";
 import { StatCard } from "@/components/dashboard/StatCard";
 import { RequetesTable } from "@/components/dashboard/RequetesTable";
-import { ChatbotWidget } from "@/components/chatbot/ChatbotWidget";
 import { Spinner } from "@/components/ui";
 import { useMesRequetes } from "@/hooks/useMesRequetes";
 import { STATUT_TO_FILTRE, type StatutFiltre } from "@/lib/constants";
@@ -77,8 +76,6 @@ export default function DashboardPage() {
           </>
         )}
       </main>
-
-      <ChatbotWidget />
     </>
   );
 }

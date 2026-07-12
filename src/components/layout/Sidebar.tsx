@@ -12,16 +12,35 @@ import {
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 
-const navItems = [
-    { href: '/staff/dashboard', icon: LayoutDashboard, label: 'Tableau de bord' },
-    { href: '/staff/requetes', icon: FileText, label: 'Requêtes' },
-    { href: '/staff/notifications', icon: Bell, label: 'Notifications' },
-    { href: '/staff/parametres', icon: Settings, label: 'Paramètres' },
-];
-
 export default function Sidebar() {
     const { user, logout } = useAuth();
     const pathname = usePathname();
+
+    // Déterminer les éléments de navigation selon le rôle
+    const getNavItems = () => {
+        if (!user) return [];
+        
+        const isStudent = user.role === 'etudiant';
+        
+        if (isStudent) {
+            return [
+                { href: '/dashboard', icon: LayoutDashboard, label: 'Tableau de bord' },
+                { href: '/requetes', icon: FileText, label: 'Requêtes' },
+                { href: '/dashboard', icon: Bell, label: 'Notifications' },
+                { href: '/dashboard', icon: Settings, label: 'Paramètres' },
+            ];
+        }
+        
+        // Routes staff
+        return [
+            { href: '/staff/dashboard', icon: LayoutDashboard, label: 'Tableau de bord' },
+            { href: '/staff/requetes', icon: FileText, label: 'Requêtes' },
+            { href: '/staff/notifications', icon: Bell, label: 'Notifications' },
+            { href: '/staff/parametres', icon: Settings, label: 'Paramètres' },
+        ];
+    };
+    
+    const navItems = getNavItems();
 
     if (!user) return null;
 

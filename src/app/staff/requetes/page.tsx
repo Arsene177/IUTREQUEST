@@ -9,7 +9,7 @@ import { Search, Filter, AlertCircle, Eye, ChevronLeft, ChevronRight } from "luc
 import Link from "next/link";
 
 export default function StaffRequetesList() {
-  const { user, loading } = useAuth();
+  const { user, isLoading } = useAuth();
   const router = useRouter();
   const [requetes, setRequetes] = useState<RequeteListItem[]>([]);
   const [error, setError] = useState<string>("");
@@ -23,10 +23,10 @@ export default function StaffRequetesList() {
   const [typeFilter, setTypeFilter] = useState("");
 
   useEffect(() => {
-    if (!loading && (!user || !['secretariat', 'directeur', 'directeur_adjoint', 'departement', 'scolarite', 'cellule_informatique'].includes(user.role))) {
-      router.push("/auth/login");
+    if (!isLoading && (!user || !['secretariat', 'directeur', 'directeur_adjoint', 'departement', 'scolarite', 'cellule_informatique'].includes(user.role))) {
+      router.push("/login");
     }
-  }, [user, loading, router]);
+  }, [user, isLoading, router]);
 
   useEffect(() => {
     const loadData = async () => {
@@ -69,7 +69,7 @@ export default function StaffRequetesList() {
     });
   };
 
-  if (loading || !user) return <StaffLayout><div className="p-8 text-center text-gray-500">Chargement...</div></StaffLayout>;
+  if (isLoading || !user) return <StaffLayout><div className="p-8 text-center text-gray-500">Chargement...</div></StaffLayout>;
 
   return (
     <StaffLayout>

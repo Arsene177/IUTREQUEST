@@ -7,8 +7,10 @@ interface AuthContextType {
     user: User | null;
     token: string | null;
     isLoading: boolean;
+    notificationsNonLues: number;
     login: (token: string, user: User) => void;
     logout: () => void;
+    setNotificationsNonLues: (count: number) => void;
     isAuthenticated: boolean;
 }
 
@@ -27,30 +29,31 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const [user, setUser] = useState<User | null>(null);
     const [token, setToken] = useState<string | null>(null);
     const [isLoading, setIsLoading] = useState(true);
+    const [notificationsNonLues, setNotificationsNonLues] = useState(0);
 
     useEffect(() => {
-        const savedToken = localStorage.getItem('janngo_token');
+        const savedToken = localStorage.getItem('iutrequest_token');
         const savedUser = localStorage.getItem('janngo_user');
 
         if (savedToken && savedUser) {
             setToken(savedToken);
             setUser(JSON.parse(savedUser));
         } else {
-            // Mode dev : utilisateur mock chargé automatiquement
-            setUser(MOCK_USER);
+            setToken(null);
+            setUser(null);
         }
         setIsLoading(false);
     }, []);
 
     const login = (newToken: string, newUser: User) => {
-        localStorage.setItem('janngo_token', newToken);
+        localStorage.setItem('iutrequest_token', newToken);
         localStorage.setItem('janngo_user', JSON.stringify(newUser));
         setToken(newToken);
         setUser(newUser);
     };
 
     const logout = () => {
-        localStorage.removeItem('janngo_token');
+        localStorage.removeItem('iutrequest_token');
         localStorage.removeItem('janngo_user');
         setToken(null);
         setUser(null);
@@ -61,8 +64,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             user,
             token,
             isLoading,
+            notificationsNonLues,
             login,
             logout,
+            setNotificationsNonLues,
             isAuthenticated: !!user,
         }}>
             {children}

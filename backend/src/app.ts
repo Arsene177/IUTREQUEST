@@ -5,6 +5,7 @@ import authRoutes from './routes/authRoutes';
 import requeteRoutes from './routes/requeteRoutes';
 import documentRoutes from './routes/documentRoutes';
 import chatbotRoutes from './routes/chatbotRoutes';
+import notificationRoutes from './routes/notificationRoutes';
 
 dotenv.config();
 
@@ -19,6 +20,7 @@ app.use('/auth', authRoutes);
 app.use('/requetes', requeteRoutes);
 app.use('/requetes/:id/documents', documentRoutes);
 app.use('/chatbot', chatbotRoutes);
+app.use('/notifications', notificationRoutes);
 
 // Route de test
 app.get('/', (req, res) => {

@@ -1,4 +1,5 @@
 import faqData from './faq.json';
+import { isGroqEnabled, queryGroqAI } from './groq-service';
 
 // Types
 export type ChatbotState =
@@ -126,7 +127,7 @@ export const processMessage = async (
           ]
         };
       } else {
-        botResponse = searchFAQ(message);
+        botResponse = await answerFaqOrGroq(message);
         botResponse.quickReplies = ['Retour au menu'];
       }
       break;
@@ -198,6 +199,33 @@ export const processMessage = async (
   return botResponse;
 };
 
+async function answerFaqOrGroq(query: string): Promise<ChatMessage> {
+  const faqResponse = searchFAQ(query);
+  if (faqResponse.content.startsWith('Voici ce que j\'ai trouvé')) {
+    return faqResponse;
+  }
+
+  if (isGroqEnabled()) {
+    try {
+      const groqAnswer = await queryGroqAI(query);
+      return {
+        role: 'bot',
+        content: groqAnswer
+      };
+    } catch (error) {
+      console.error('Groq AI error:', error);
+      return {
+        role: 'bot',
+        content: "Je n'ai pas trouvé de réponse dans ma base de connaissances et le service AI est momentanément indisponible. Essayez de reformuler ou contactez le secrétariat de l'IUT." 
+      };
+    }
+  }
+
+  return {
+    role: 'bot',
+    content: "Je n'ai pas trouvé de réponse exacte à votre question dans ma base de connaissances. Essayez de reformuler ou contactez le secrétariat de l'IUT pour plus d'informations."
+  };
+}
 
 // Helpers for Guides
 function getGuideEffetAcademique(): ChatMessage {

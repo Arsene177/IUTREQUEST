@@ -6,13 +6,24 @@ import { AuthRequest } from '../middlewares/authMiddleware';
 
 // POST /auth/login
 export const login = async (req: Request, res: Response): Promise<void> => {
-  const { email, password } = req.body;
+  const { email, identifiant, password } = req.body;
+  const identifier = identifiant || email;
+
+  if (!identifier) {
+    res.status(400).json({ message: 'Identifiant requis' });
+    return;
+  }
 
   try {
-    const [rows]: any = await pool.execute(
-      'SELECT * FROM users WHERE email = ?',
-      [email]
-    );
+    let query = 'SELECT * FROM users WHERE email = ?';
+    let params = [identifier];
+
+    if (!identifier.includes('@')) {
+      // C'est un matricule étudiant
+      query = 'SELECT u.* FROM users u JOIN etudiant e ON u.id = e.user_id WHERE e.matricule = ?';
+    }
+
+    const [rows]: any = await pool.execute(query, params);
 
     if (rows.length === 0) {
       res.status(404).json({ message: 'Utilisateur introuvable' });

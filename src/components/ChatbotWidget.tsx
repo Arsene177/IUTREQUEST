@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import { MessageCircle, X, Send } from "lucide-react";
+import { API_BASE_URL } from "@/lib/api-client";
 
 interface ChatMessage {
   role: "bot" | "user";
@@ -59,7 +60,7 @@ export default function ChatbotWidget() {
     setIsLoading(true);
 
     try {
-      const response = await fetch("http://localhost:5000/chatbot/message", {
+      const response = await fetch(`${API_BASE_URL}/chatbot/message`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

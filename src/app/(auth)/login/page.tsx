@@ -9,6 +9,8 @@ import { loginSchema, type LoginFormValues } from "@/lib/validation";
 import { useAuth } from "@/context/AuthContext";
 import { Button, TextField, IutRequestLogo } from "@/components/ui";
 
+import { authApi } from "@/lib/api/auth";
+
 export default function LoginPage() {
   return (
     <Suspense fallback={null}>
@@ -18,7 +20,7 @@ export default function LoginPage() {
 }
 
 function LoginForm() {
-  const { login, isAuthenticated, isLoading: isAuthLoading } = useAuth();
+  const { login, isAuthenticated, isLoading: isAuthLoading, user } = useAuth();
   const router = useRouter();
   const searchParams = useSearchParams();
   const [serverError, setServerError] = useState<string | null>(null);
@@ -32,17 +34,27 @@ function LoginForm() {
   });
 
   useEffect(() => {
-    if (!isAuthLoading && isAuthenticated) {
-      router.replace("/dashboard");
+    if (!isAuthLoading && isAuthenticated && user) {
+      if (user.role === "etudiant") {
+        router.replace("/dashboard");
+      } else {
+        router.replace("/staff/dashboard");
+      }
     }
-  }, [isAuthLoading, isAuthenticated, router]);
+  }, [isAuthLoading, isAuthenticated, user, router]);
 
   const sessionExpired = searchParams.get("session") === "expired";
 
   const onSubmit = async (values: LoginFormValues) => {
     setServerError(null);
     try {
-      await login(values);
+      const res = await authApi.login(values);
+      login(res.token, res.user);
+      if (res.user.role === "etudiant") {
+        router.replace("/dashboard");
+      } else {
+        router.replace("/staff/dashboard");
+      }
     } catch (err) {
       setServerError(err instanceof Error ? err.message : "Une erreur est survenue.");
     }

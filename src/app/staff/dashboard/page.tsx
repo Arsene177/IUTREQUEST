@@ -17,16 +17,16 @@ import {
 import { LayoutDashboard, FileText, CheckCircle, Clock, AlertCircle } from "lucide-react";
 
 export default function DashboardPage() {
-  const { user, loading } = useAuth();
+  const { user, isLoading } = useAuth();
   const router = useRouter();
   const [stats, setStats] = useState<StaffStats | null>(null);
   const [error, setError] = useState<string>("");
 
   useEffect(() => {
-    if (!loading && (!user || !['secretariat', 'directeur', 'directeur_adjoint', 'departement', 'scolarite', 'cellule_informatique'].includes(user.role))) {
-      router.push("/auth/login");
+    if (!isLoading && (!user || !['secretariat', 'directeur', 'directeur_adjoint', 'departement', 'scolarite', 'cellule_informatique'].includes(user.role))) {
+      router.push("/login");
     }
-  }, [user, loading, router]);
+  }, [user, isLoading, router]);
 
   useEffect(() => {
     const loadStats = async () => {
@@ -42,7 +42,7 @@ export default function DashboardPage() {
     }
   }, [user]);
 
-  if (loading || !user) return <StaffLayout><div className="p-8 text-center text-gray-500">Chargement...</div></StaffLayout>;
+  if (isLoading || !user) return <StaffLayout><div className="p-8 text-center text-gray-500">Chargement...</div></StaffLayout>;
 
   const getTotalCount = () => {
     if (!stats) return 0;

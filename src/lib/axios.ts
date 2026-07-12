@@ -9,7 +9,7 @@ const api = axios.create({
 
 api.interceptors.request.use((config) => {
     if (typeof window !== 'undefined') {
-        const token = localStorage.getItem('janngo_token');
+        const token = localStorage.getItem('iutrequest_token');
         if (token) {
             config.headers.Authorization = `Bearer ${token}`;
         }
@@ -22,9 +22,9 @@ api.interceptors.response.use(
     (error) => {
         if (error.response?.status === 401) {
             if (typeof window !== 'undefined') {
-                localStorage.removeItem('janngo_token');
+                localStorage.removeItem('iutrequest_token');
                 localStorage.removeItem('janngo_user');
-                window.location.href = '/auth/login';
+                window.location.href = '/login';
             }
         }
         return Promise.reject(error);

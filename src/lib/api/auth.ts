@@ -25,6 +25,19 @@ export const authApi = {
     return data;
   },
 
+  async register(payload: {
+    nom: string;
+    prenom: string;
+    email: string;
+    password: string;
+    matricule: string;
+    filiere: string;
+    niveau: string;
+  }): Promise<{ message: string }> {
+    const { data } = await apiClient.post<{ message: string }>("/auth/register", payload);
+    return data;
+  },
+
   async me(): Promise<MeResponse> {
     const { data } = await apiClient.get<MeResponse>("/auth/me");
     return data;

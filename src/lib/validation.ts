@@ -24,6 +24,17 @@ export const loginSchema = z.object({
 });
 export type LoginFormValues = z.infer<typeof loginSchema>;
 
+export const registerSchema = z.object({
+  nom: z.string().min(2, "Le nom est requis."),
+  prenom: z.string().min(2, "Le prénom est requis."),
+  email: z.string().email("Email invalide."),
+  password: z.string().min(8, "Minimum 8 caractères."),
+  matricule: z.string().min(3, "Le matricule est requis."),
+  filiere: z.string().min(2, "La filière est requise."),
+  niveau: z.string().min(1, "Le niveau est requis."),
+});
+export type RegisterFormValues = z.infer<typeof registerSchema>;
+
 export const motDePasseOublieSchema = z.object({
   nom: z.string().min(2, "Le nom est requis."),
   prenom: z.string().min(2, "Le prénom est requis."),

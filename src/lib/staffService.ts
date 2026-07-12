@@ -54,7 +54,11 @@ export const fetchRequeteDetails = async (id: string | number): Promise<any> => 
   return response.data;
 };
 
-export const transitionRequete = async (id: string | number, action: string): Promise<{ message: string }> => {
-  const response = await api.put(`/requetes/staff/${id}/${action}`);
+export const transitionRequete = async (
+  id: string | number,
+  action: string,
+  body?: Record<string, unknown>
+): Promise<{ message: string }> => {
+  const response = await api.put(`/requetes/staff/${id}/${action}`, body ?? {});
   return response.data;
 };

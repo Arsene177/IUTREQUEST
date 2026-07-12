@@ -9,7 +9,7 @@ import { AlertCircle, ArrowLeft, CheckCircle, Clock, XCircle, Play, Info } from 
 import Link from "next/link";
 
 export default function RequeteDetail() {
-  const { user, loading } = useAuth();
+  const { user, isLoading } = useAuth();
   const router = useRouter();
   const params = useParams();
   const [data, setData] = useState<any>(null);
@@ -27,10 +27,10 @@ export default function RequeteDetail() {
   };
 
   useEffect(() => {
-    if (!loading && (!user || !['secretariat', 'directeur', 'directeur_adjoint', 'departement', 'scolarite', 'cellule_informatique'].includes(user.role))) {
-      router.push("/auth/login");
+    if (!isLoading && (!user || !['secretariat', 'directeur', 'directeur_adjoint', 'departement', 'scolarite', 'cellule_informatique'].includes(user.role))) {
+      router.push("/login");
     }
-  }, [user, loading, router]);
+  }, [user, isLoading, router]);
 
   useEffect(() => {
     if (user && params.id) {
@@ -38,13 +38,15 @@ export default function RequeteDetail() {
     }
   }, [user, params.id]);
 
-  const handleTransition = async (action: string) => {
+  const [serviceCible, setServiceCible] = useState("directeur_adjoint");
+
+  const handleTransition = async (action: string, body?: Record<string, unknown>) => {
     if (!window.confirm(`Voulez-vous vraiment effectuer l'action : ${action} ?`)) return;
     setIsProcessing(true);
     setError("");
     setSuccess("");
     try {
-      const res = await transitionRequete(params.id as string, action);
+      const res = await transitionRequete(params.id as string, action, body);
       setSuccess(res.message);
       await fetchDetails();
     } catch (err: any) {
@@ -52,6 +54,22 @@ export default function RequeteDetail() {
     } finally {
       setIsProcessing(false);
     }
+  };
+
+  const handleRejeter = () => {
+    const motif = window.prompt("Motif du rejet (obligatoire) :");
+    if (!motif?.trim()) return;
+    handleTransition("rejeter", { motif: motif.trim() });
+  };
+
+  const handleDemanderInfo = () => {
+    const info = window.prompt("Quelle information est requise ?");
+    if (!info?.trim()) return;
+    handleTransition("demander-info", { info_requise: info.trim() });
+  };
+
+  const handleAcheminer = () => {
+    handleTransition("acheminer", { service_cible: serviceCible });
   };
 
   const getStatusBadge = (statut: string) => {
@@ -71,18 +89,29 @@ export default function RequeteDetail() {
     );
   };
 
-  if (loading || !data) return <StaffLayout><div className="p-8 text-center text-gray-500">Chargement...</div></StaffLayout>;
+  if (isLoading || !data) return <StaffLayout><div className="p-8 text-center text-gray-500">Chargement...</div></StaffLayout>;
 
-  const { requete, details, historique } = data;
+  const { requete, details, historique, etudiant } = data;
 
-  // Actions logiques
-  const showReceptionner = requete.statut === 'EN_ATTENTE' && user?.role === 'secretariat';
-  const showAcheminer = requete.statut === 'EN_COURS' && ['secretariat', 'departement'].includes(user?.role || '');
-  const showValider = ['EN_COURS', 'ATTENTE_INFO'].includes(requete.statut) && ['directeur', 'directeur_adjoint', 'departement'].includes(user?.role || '');
-  const showRejeter = ['EN_COURS', 'ATTENTE_INFO'].includes(requete.statut) && ['directeur', 'directeur_adjoint', 'departement'].includes(user?.role || '');
-  const showDemanderInfo = requete.statut === 'EN_COURS'; // Any staff can ask for info conceptually, or keep it strict
-  const showExecuter = requete.statut === 'VALIDEE' && ['cellule_informatique', 'scolarite'].includes(user?.role || '');
-  const showCloturer = ['EN_EXECUTION', 'VALIDEE'].includes(requete.statut) && ['scolarite', 'secretariat'].includes(user?.role || '');
+  const showReceptionner =
+    requete.statut === "EN_ATTENTE" &&
+    (user?.role === "secretariat" ||
+      (user?.role === "departement" && requete.type === "contestation_note"));
+  const showAcheminer =
+    requete.statut === "EN_COURS" && ["secretariat", "departement"].includes(user?.role || "");
+  const showValider =
+    ["EN_COURS", "ATTENTE_INFO"].includes(requete.statut) &&
+    ["directeur", "directeur_adjoint", "departement"].includes(user?.role || "");
+  const showRejeter =
+    ["EN_COURS", "ATTENTE_INFO"].includes(requete.statut) &&
+    ["directeur", "directeur_adjoint", "departement"].includes(user?.role || "");
+  const showDemanderInfo = requete.statut === "EN_COURS";
+  const showExecuter =
+    requete.statut === "VALIDEE" &&
+    ["cellule_informatique", "scolarite"].includes(user?.role || "");
+  const showCloturer =
+    ["EN_EXECUTION", "VALIDEE", "REJETEE"].includes(requete.statut) &&
+    ["scolarite", "secretariat", "cellule_informatique"].includes(user?.role || "");
 
   return (
     <StaffLayout>
@@ -164,9 +193,26 @@ export default function RequeteDetail() {
                   </button>
                 )}
                 {showAcheminer && (
-                  <button onClick={() => handleTransition('acheminer')} disabled={isProcessing} className="flex items-center space-x-2 bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg font-medium transition-colors disabled:opacity-50">
-                    <Play className="w-4 h-4" /> <span>Acheminer</span>
-                  </button>
+                  <div className="flex items-center gap-2">
+                    <select
+                      value={serviceCible}
+                      onChange={(e) => setServiceCible(e.target.value)}
+                      className="border border-gray-300 rounded-lg px-3 py-2 text-sm"
+                    >
+                      <option value="directeur_adjoint">Directeur adjoint</option>
+                      <option value="directeur">Directeur</option>
+                      <option value="departement">Département</option>
+                      <option value="scolarite">Scolarité</option>
+                      <option value="cellule_informatique">Cellule informatique</option>
+                    </select>
+                    <button
+                      onClick={handleAcheminer}
+                      disabled={isProcessing}
+                      className="flex items-center space-x-2 bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg font-medium transition-colors disabled:opacity-50"
+                    >
+                      <Play className="w-4 h-4" /> <span>Acheminer</span>
+                    </button>
+                  </div>
                 )}
                 {showValider && (
                   <button onClick={() => handleTransition('valider')} disabled={isProcessing} className="flex items-center space-x-2 bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg font-medium transition-colors disabled:opacity-50">
@@ -184,12 +230,12 @@ export default function RequeteDetail() {
                   </button>
                 )}
                 {showDemanderInfo && (
-                  <button onClick={() => handleTransition('demander-info')} disabled={isProcessing} className="flex items-center space-x-2 bg-yellow-500 hover:bg-yellow-600 text-white px-4 py-2 rounded-lg font-medium transition-colors disabled:opacity-50">
+                  <button onClick={handleDemanderInfo} disabled={isProcessing} className="flex items-center space-x-2 bg-yellow-500 hover:bg-yellow-600 text-white px-4 py-2 rounded-lg font-medium transition-colors disabled:opacity-50">
                     <Info className="w-4 h-4" /> <span>Demander Info</span>
                   </button>
                 )}
                 {showRejeter && (
-                  <button onClick={() => handleTransition('rejeter')} disabled={isProcessing} className="flex items-center space-x-2 bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg font-medium transition-colors disabled:opacity-50">
+                  <button onClick={handleRejeter} disabled={isProcessing} className="flex items-center space-x-2 bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg font-medium transition-colors disabled:opacity-50">
                     <XCircle className="w-4 h-4" /> <span>Rejeter</span>
                   </button>
                 )}
@@ -205,8 +251,15 @@ export default function RequeteDetail() {
           <div className="space-y-6">
             <div className="bg-gray-900 rounded-2xl shadow-sm p-6 text-white">
               <h3 className="text-lg font-semibold mb-4 text-gray-100 border-b border-gray-700 pb-2">Informations Étudiant</h3>
-              <p className="text-sm text-gray-400">ID Étudiant interne</p>
-              <p className="font-medium text-lg mb-3">#{requete.etudiant_id}</p>
+              {etudiant ? (
+                <>
+                  <p className="font-medium text-lg">{etudiant.prenom} {etudiant.nom}</p>
+                  <p className="text-sm text-gray-400 mt-1">{etudiant.matricule}</p>
+                  <p className="text-sm text-gray-400">{etudiant.email}</p>
+                </>
+              ) : (
+                <p className="text-sm text-gray-400">Étudiant #{requete.etudiant_id}</p>
+              )}
             </div>
 
             <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
