@@ -14,30 +14,15 @@ services:
       - key: PORT
         value: 10000
       - key: DB_HOST
-        fromDatabase:
-          name: iut-request-db
-          property: host
+        value: bonmnmcjr2mfxbcnd3ij-mysql.services.clever-cloud.com
       - key: DB_PORT
-        fromDatabase:
-          name: iut-request-db
-          property: port
+        value: "3306"
       - key: DB_USER
-        fromDatabase:
-          name: iut-request-db
-          property: user
+        value: ujgz5vncge7mzokx
       - key: DB_PASSWORD
-        fromDatabase:
-          name: iut-request-db
-          property: password
+        value: SLJkJhC4TohLq7lXzg3J
       - key: DB_NAME
-        fromDatabase:
-          name: iut-request-db
-          property: database
+        value: bonmnmcjr2mfxbcnd3ij
       - key: JWT_SECRET
         generateValue: true
 
-databases:
-  - name: iut-request-db
-    databaseName: janngo_db
-    user: janngo
-    plan: free
