@@ -121,7 +121,7 @@ const getMesRequetes = async (req, res) => {
         }
         const [requetes] = await db_1.default.execute(`SELECT id, type, statut, priorite, date_depot, updated_at
        FROM requete WHERE etudiant_id = ?
-       ORDER BY date_depot DESC LIMIT ? OFFSET ?`, [etudiantId, limit, offset]);
+       ORDER BY date_depot DESC LIMIT ? OFFSET ?`, [etudiantId, Number(limit), Number(offset)]);
         const [total] = await db_1.default.execute('SELECT COUNT(*) as total FROM requete WHERE etudiant_id = ?', [etudiantId]);
         res.status(200).json({
             requetes,
@@ -268,7 +268,7 @@ const getRequetesStaff = async (req, res) => {
             queryParams.push(idSearch, like, like, like);
         }
         baseQuery += ' ORDER BY r.date_depot DESC LIMIT ? OFFSET ?';
-        const params = [...queryParams, limit, offset];
+        const params = [...queryParams, Number(limit), Number(offset)];
         const [requetes] = await db_1.default.execute(baseQuery, params);
         const [totalRows] = await db_1.default.execute(countQuery, queryParams);
         res.status(200).json({
