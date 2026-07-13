@@ -7,6 +7,6 @@
     }
   ],
   "env": {
-    "NEXT_PUBLIC_API_URL": "https://your-render-backend-url.onrender.com"
+    "NEXT_PUBLIC_API_URL": "https://iutrequetes-backend.onrender.com"
   }
 }
