@@ -6,7 +6,7 @@
   "scripts": {
   "dev": "nodemon",
   "build": "tsc",
-  "start": "node -e \"require('dotenv').config()\" dist/server.js",
+  "start": "node dist/server.js",
   "seed": "ts-node src/seed.ts"
 },
   "keywords": [],
