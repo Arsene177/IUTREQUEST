@@ -172,7 +172,7 @@ export const getMesRequetes = async (req: AuthRequest, res: Response): Promise<v
       `SELECT id, type, statut, priorite, date_depot, updated_at
        FROM requete WHERE etudiant_id = ?
        ORDER BY date_depot DESC LIMIT ? OFFSET ?`,
-      [etudiantId, limit, offset]
+      [etudiantId, Number(limit), Number(offset)]
     );
 
     const [total]: any = await pool.execute(
@@ -357,7 +357,7 @@ export const getRequetesStaff = async (req: AuthRequest, res: Response): Promise
 
     baseQuery += ' ORDER BY r.date_depot DESC LIMIT ? OFFSET ?';
 
-    const params = [...queryParams, limit, offset];
+    const params = [...queryParams, Number(limit), Number(offset)];
     const [requetes]: any = await pool.execute(baseQuery, params as any[]);
     const [totalRows]: any = await pool.execute(countQuery, queryParams as any[]);
 
