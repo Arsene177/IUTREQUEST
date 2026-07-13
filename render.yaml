@@ -1,28 +1,26 @@
 services:
   - type: web
-    name: iut-request-backend
+    name: iutrequetes-backend
     env: node
     region: oregon
     plan: free
-    buildCommand: cd backend && npm install --include=dev && npm run build
-    startCommand: cd backend && npm run start
+    rootDir: backend
+    buildCommand: npm install --include=dev && npm run build
+    startCommand: npm start
     envVars:
       - key: NODE_ENV
         value: production
-      - key: NPM_CONFIG_PRODUCTION
-        value: "false"
       - key: PORT
         value: 10000
       - key: DB_HOST
-        value: bonmnmcjr2mfxbcnd3ij-mysql.services.clever-cloud.com
+        sync: false
       - key: DB_PORT
-        value: "3306"
+        sync: false
       - key: DB_USER
-        value: ujgz5vncge7mzokx
+        sync: false
       - key: DB_PASSWORD
-        value: SLJkJhC4TohLq7lXzg3J
+        sync: false
       - key: DB_NAME
-        value: bonmnmcjr2mfxbcnd3ij
+        sync: false
       - key: JWT_SECRET
         generateValue: true
-
