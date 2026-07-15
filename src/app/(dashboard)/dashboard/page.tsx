@@ -45,26 +45,40 @@ export default function DashboardPage() {
         ) : (
           <>
             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
-              <StatCard value={stats.total} label="Totaux" accentColor="var(--color-brand)" />
+              <StatCard
+                value={stats.total}
+                label="Totaux"
+                accentColor="var(--color-brand)"
+                active={filtreActif === null}
+                onClick={() => setFiltreActif(null)}
+              />
               <StatCard
                 value={stats.enAttente}
                 label="En attentes"
                 accentColor="var(--color-status-attente)"
+                active={filtreActif === "EN_ATTENTE"}
+                onClick={() => setFiltreActif(filtreActif === "EN_ATTENTE" ? null : "EN_ATTENTE")}
               />
               <StatCard
                 value={stats.enCours}
                 label="En cours"
                 accentColor="var(--color-status-cours)"
+                active={filtreActif === "EN_COURS"}
+                onClick={() => setFiltreActif(filtreActif === "EN_COURS" ? null : "EN_COURS")}
               />
               <StatCard
                 value={stats.resolues}
                 label="Résolues"
                 accentColor="var(--color-status-validee)"
+                active={filtreActif === "RESOLUE"}
+                onClick={() => setFiltreActif(filtreActif === "RESOLUE" ? null : "RESOLUE")}
               />
               <StatCard
                 value={stats.rejetees}
                 label="Rejetés"
                 accentColor="var(--color-status-rejetee)"
+                active={filtreActif === "REJETE"}
+                onClick={() => setFiltreActif(filtreActif === "REJETE" ? null : "REJETE")}
               />
             </div>
 

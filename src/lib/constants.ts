@@ -24,6 +24,18 @@ export const ROLE_CONFIG = {
   etudiant: { label: "Étudiant", color: "#6B7280" },
 } as const;
 
+/**
+ * Cible(s) valide(s) pour l'acheminement d'une requête, selon son type.
+ * Doit rester synchronisé avec CIBLES_ACHEMINEMENT_VALIDES côté backend
+ * (backend/src/controllers/requeteController.ts) : router vers un service
+ * hors de cette liste orpheline le dossier (plus personne ne peut le voir).
+ */
+export const CIBLES_ACHEMINEMENT: Record<string, { value: string; label: string }[]> = {
+  effet_academique: [{ value: "directeur_adjoint", label: "Directeur adjoint" }],
+  correction_nom: [{ value: "directeur", label: "Directeur" }],
+  contestation_note: [{ value: "cellule_informatique", label: "Cellule informatique" }],
+};
+
 export const EXTENSIONS_ACCEPTEES = [".pdf", ".jpg", ".jpeg", ".png"];
 export const MIME_ACCEPTES = ["application/pdf", "image/jpeg", "image/png", "image/jpg"];
 export const TAILLE_MAX_FICHIER_OCTETS = 5 * 1024 * 1024;

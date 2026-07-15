@@ -62,3 +62,16 @@ export const transitionRequete = async (
   const response = await api.put(`/requetes/staff/${id}/${action}`, body ?? {});
   return response.data;
 };
+
+/** Télécharge le CSV d'une contestation de note (à transmettre à l'enseignant concerné). */
+export const exporterContestationCsv = async (id: string | number): Promise<void> => {
+  const response = await api.get(`/requetes/staff/${id}/export-csv`, { responseType: 'blob' });
+  const url = window.URL.createObjectURL(new Blob([response.data]));
+  const lien = document.createElement('a');
+  lien.href = url;
+  lien.download = `contestation-note-${id}.csv`;
+  document.body.appendChild(lien);
+  lien.click();
+  lien.remove();
+  window.URL.revokeObjectURL(url);
+};

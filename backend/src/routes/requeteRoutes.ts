@@ -14,6 +14,7 @@ import {
   executerRequete,
   cloturerRequete,
   completerInfoRequete,
+  exporterContestationCsv,
 } from '../controllers/requeteController';
 import authMiddleware from '../middlewares/authMiddleware';
 import roleMiddleware from '../middlewares/roleMiddleware';
@@ -33,6 +34,12 @@ router.put(
   authMiddleware,
   roleMiddleware(['secretariat', 'departement']),
   receptionnerRequete
+);
+router.get(
+  '/staff/:id/export-csv',
+  authMiddleware,
+  roleMiddleware(['departement']),
+  exporterContestationCsv
 );
 router.put('/staff/:id/acheminer', authMiddleware, roleMiddleware(['secretariat', 'departement']), acheminerRequete);
 router.put('/staff/:id/valider', authMiddleware, roleMiddleware(['directeur', 'directeur_adjoint', 'departement']), validerRequete);

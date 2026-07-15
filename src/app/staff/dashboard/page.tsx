@@ -42,7 +42,7 @@ export default function DashboardPage() {
     }
   }, [user]);
 
-  if (isLoading || !user) return <StaffLayout><div className="p-8 text-center text-gray-500">Chargement...</div></StaffLayout>;
+  if (isLoading || !user) return <StaffLayout title="Tableau de bord"><div className="p-8 text-center text-gray-500">Chargement...</div></StaffLayout>;
 
   const getTotalCount = () => {
     if (!stats) return 0;
@@ -56,16 +56,16 @@ export default function DashboardPage() {
   };
 
   return (
-    <StaffLayout>
+    <StaffLayout title="Tableau de bord">
       <div className="space-y-6 max-w-7xl mx-auto">
-        <header className="flex items-center justify-between">
-          <div className="flex items-center space-x-3">
-            <LayoutDashboard className="w-8 h-8 text-blue-600" />
-            <h1 className="text-3xl font-bold text-gray-900">Tableau de bord</h1>
+        <header className="flex flex-wrap items-center justify-between gap-3">
+          <div className="flex items-center space-x-3 min-w-0">
+            <LayoutDashboard className="w-8 h-8 text-blue-600 flex-shrink-0" />
+            <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 truncate">Tableau de bord</h1>
           </div>
-          <button 
+          <button
             onClick={() => router.push('/staff/requetes')}
-            className="bg-white border border-gray-300 text-gray-700 px-4 py-2 rounded-lg shadow-sm hover:bg-gray-50 transition-colors"
+            className="bg-white border border-gray-300 text-gray-700 px-4 py-2 rounded-lg shadow-sm hover:bg-gray-50 transition-colors whitespace-nowrap"
           >
             Voir les requêtes
           </button>
@@ -78,9 +78,15 @@ export default function DashboardPage() {
           </div>
         )}
 
-        {/* Stats Summary Cards */}
+        {/* Stats Summary Cards — cliquables : renvoient vers /staff/requetes
+            pré-filtrée par statut, pour retrouver rapidement "toutes les
+            requêtes résolues", etc. */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex items-center justify-between">
+          <button
+            type="button"
+            onClick={() => router.push('/staff/requetes')}
+            className="text-left bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex items-center justify-between hover:shadow-md hover:border-blue-200 transition-all"
+          >
             <div>
               <p className="text-sm font-medium text-gray-500">Total Requêtes</p>
               <h3 className="text-3xl font-bold text-gray-900 mt-2">{getTotalCount()}</h3>
@@ -88,9 +94,13 @@ export default function DashboardPage() {
             <div className="p-3 bg-blue-50 text-blue-600 rounded-xl">
               <FileText className="w-6 h-6" />
             </div>
-          </div>
+          </button>
 
-          <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex items-center justify-between">
+          <button
+            type="button"
+            onClick={() => router.push('/staff/requetes?statut=EN_ATTENTE')}
+            className="text-left bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex items-center justify-between hover:shadow-md hover:border-amber-200 transition-all"
+          >
             <div>
               <p className="text-sm font-medium text-gray-500">En Attente</p>
               <h3 className="text-3xl font-bold text-amber-600 mt-2">{getStatusCount('EN_ATTENTE')}</h3>
@@ -98,9 +108,13 @@ export default function DashboardPage() {
             <div className="p-3 bg-amber-50 text-amber-600 rounded-xl">
               <Clock className="w-6 h-6" />
             </div>
-          </div>
+          </button>
 
-          <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex items-center justify-between">
+          <button
+            type="button"
+            onClick={() => router.push('/staff/requetes?statut=EN_COURS')}
+            className="text-left bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex items-center justify-between hover:shadow-md hover:border-indigo-200 transition-all"
+          >
             <div>
               <p className="text-sm font-medium text-gray-500">En Cours</p>
               <h3 className="text-3xl font-bold text-indigo-600 mt-2">{getStatusCount('EN_COURS')}</h3>
@@ -108,9 +122,13 @@ export default function DashboardPage() {
             <div className="p-3 bg-indigo-50 text-indigo-600 rounded-xl">
               <FileText className="w-6 h-6" />
             </div>
-          </div>
+          </button>
 
-          <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex items-center justify-between">
+          <button
+            type="button"
+            onClick={() => router.push('/staff/requetes?statut=CLOTUREE')}
+            className="text-left bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex items-center justify-between hover:shadow-md hover:border-green-200 transition-all"
+          >
             <div>
               <p className="text-sm font-medium text-gray-500">Clôturées</p>
               <h3 className="text-3xl font-bold text-green-600 mt-2">{getStatusCount('CLOTUREE')}</h3>
@@ -118,7 +136,7 @@ export default function DashboardPage() {
             <div className="p-3 bg-green-50 text-green-600 rounded-xl">
               <CheckCircle className="w-6 h-6" />
             </div>
-          </div>
+          </button>
         </div>
 
         {/* Charts Area */}
