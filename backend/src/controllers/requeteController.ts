@@ -395,7 +395,14 @@ export const getRequetesStaff = async (req: AuthRequest, res: Response): Promise
  * (PUT .../acheminer) pour correction dans le système.
  */
 function echapperCsv(valeur: unknown): string {
-  const texte = valeur === null || valeur === undefined ? '' : String(valeur);
+  let texte = valeur === null || valeur === undefined ? '' : String(valeur);
+  // Neutralise l'injection de formule CSV/Excel : un motif de contestation
+  // saisi par l'étudiant (texte libre) qui commencerait par =, +, -, @ ou une
+  // tabulation serait sinon interprété comme une formule par le tableur de
+  // l'agent du département/enseignant à l'ouverture du fichier.
+  if (/^[=+\-@\t]/.test(texte)) {
+    texte = `'${texte}`;
+  }
   if (/[",\n;]/.test(texte)) {
     return `"${texte.replace(/"/g, '""')}"`;
   }
