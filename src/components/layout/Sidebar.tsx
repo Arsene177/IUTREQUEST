@@ -27,7 +27,7 @@ export default function Sidebar() {
                 { href: '/dashboard', icon: LayoutDashboard, label: 'Tableau de bord' },
                 { href: '/requetes', icon: FileText, label: 'Requêtes' },
                 { href: '/dashboard', icon: Bell, label: 'Notifications' },
-                { href: '/dashboard', icon: Settings, label: 'Paramètres' },
+                { href: '/parametres', icon: Settings, label: 'Paramètres' },
             ];
         }
         
@@ -85,7 +85,7 @@ export default function Sidebar() {
                         const isActive = pathname === item.href;
                         return (
                             <Link
-                                key={item.href}
+                                key={item.label}
                                 href={item.href}
                                 className={`
                   flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium
@@ -124,7 +124,7 @@ export default function Sidebar() {
                         const isActive = pathname === item.href;
                         return (
                             <Link
-                                key={item.href}
+                                key={item.label}
                                 href={item.href}
                                 className="flex flex-col items-center gap-1 px-3 py-1 rounded-lg
                   transition-colors duration-150 min-w-0"
