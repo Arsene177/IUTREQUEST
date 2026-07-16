@@ -57,9 +57,14 @@ export function buildStaffRoleFilter(role: string): { clause: string; params: un
         params: ['EN_ATTENTE', 'contestation_note'],
       };
     case 'departement':
+      // Le département est le service propriétaire des contestations de
+      // note de bout en bout : il doit voir celles en attente de
+      // réception, celles qu'il traite actuellement, ET conserver l'accès
+      // à l'historique de celles déjà acheminées/validées/rejetées/clôturées
+      // (sinon il perd toute trace de ce qu'il a lui-même traité).
       return {
-        clause: ' AND (r.statut = ? AND r.type = ? OR r.statut IN (?, ?) AND r.service_cible = ?)',
-        params: ['EN_ATTENTE', 'contestation_note', 'EN_COURS', 'ATTENTE_INFO', 'departement'],
+        clause: ' AND (r.type = ? OR r.service_cible = ?)',
+        params: ['contestation_note', 'departement'],
       };
     case 'directeur_adjoint':
       return {

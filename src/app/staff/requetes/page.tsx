@@ -1,16 +1,28 @@
 "use client";
 
 import StaffLayout from "@/components/layout/StaffLayout";
-import { useEffect, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { fetchStaffRequetes, RequeteListItem } from "@/lib/staffService";
 import { useAuth } from "@/context/AuthContext";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Search, Filter, AlertCircle, Eye, ChevronLeft, ChevronRight } from "lucide-react";
 import Link from "next/link";
 
-export default function StaffRequetesList() {
+export default function StaffRequetesListPage() {
+  return (
+    <Suspense fallback={<StaffLayout title="Requêtes"><div className="p-8 text-center text-gray-500">Chargement...</div></StaffLayout>}>
+      <StaffRequetesList />
+    </Suspense>
+  );
+}
+
+function StaffRequetesList() {
   const { user, isLoading } = useAuth();
   const router = useRouter();
+  // Permet à un lien externe (ex: tableau de bord) de pré-filtrer la liste
+  // via ?statut=... et/ou ?type=... — les cartes de stats du dashboard staff
+  // pointent vers ces query params pour rendre les statuts "cliquables".
+  const searchParams = useSearchParams();
   const [requetes, setRequetes] = useState<RequeteListItem[]>([]);
   const [error, setError] = useState<string>("");
   const [isLoadingData, setIsLoadingData] = useState(true);
@@ -19,8 +31,8 @@ export default function StaffRequetesList() {
   const [page, setPage] = useState(1);
   const [limit] = useState(10);
   const [totalPages, setTotalPages] = useState(1);
-  const [statutFilter, setStatutFilter] = useState("");
-  const [typeFilter, setTypeFilter] = useState("");
+  const [statutFilter, setStatutFilter] = useState(() => searchParams.get("statut") ?? "");
+  const [typeFilter, setTypeFilter] = useState(() => searchParams.get("type") ?? "");
 
   useEffect(() => {
     if (!isLoading && (!user || !['secretariat', 'directeur', 'directeur_adjoint', 'departement', 'scolarite', 'cellule_informatique'].includes(user.role))) {
@@ -69,10 +81,10 @@ export default function StaffRequetesList() {
     });
   };
 
-  if (isLoading || !user) return <StaffLayout><div className="p-8 text-center text-gray-500">Chargement...</div></StaffLayout>;
+  if (isLoading || !user) return <StaffLayout title="Requêtes"><div className="p-8 text-center text-gray-500">Chargement...</div></StaffLayout>;
 
   return (
-    <StaffLayout>
+    <StaffLayout title="Requêtes">
       <div className="space-y-6 max-w-7xl mx-auto">
         <header className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>

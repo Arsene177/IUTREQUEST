@@ -67,9 +67,19 @@ export const processMessage = async (
   const lowerMessage = message.trim().toLowerCase();
   let botResponse: ChatMessage = { role: 'bot', content: 'Je ne suis pas sûr de comprendre.' };
 
-  // Global reset commands
-  if (lowerMessage === 'menu' || lowerMessage === 'recommencer' || lowerMessage === 'accueil') {
+  // Global reset commands — doivent fonctionner depuis n'importe quel état
+  // (FAQ_SEARCH, GUIDE_*, etc.), pas seulement depuis IDENTIFY_NEED. On
+  // court-circuite donc le state machine avec un retour immédiat au menu.
+  if (
+    lowerMessage === 'menu' ||
+    lowerMessage === 'recommencer' ||
+    lowerMessage === 'accueil' ||
+    lowerMessage === 'retour au menu'
+  ) {
     session.state = 'IDENTIFY_NEED';
+    botResponse = getMenuResponse();
+    session.history.push(botResponse);
+    return botResponse;
   }
 
   // State Machine
@@ -114,22 +124,8 @@ export const processMessage = async (
       break;
 
     case 'FAQ_SEARCH':
-      if (lowerMessage === 'retour au menu') {
-        session.state = 'IDENTIFY_NEED';
-        botResponse = {
-          role: 'bot',
-          content: "Comment puis-je vous aider ?",
-          quickReplies: [
-            'J\'ai une question (FAQ)',
-            'Faire une requête d\'Effet académique',
-            'Faire une requête de Correction de nom',
-            'Faire une requête de Contestation de note'
-          ]
-        };
-      } else {
-        botResponse = await answerFaqOrGroq(message);
-        botResponse.quickReplies = ['Retour au menu'];
-      }
+      botResponse = await answerFaqOrGroq(message);
+      botResponse.quickReplies = ['Retour au menu'];
       break;
 
     case 'GUIDE_EFFET_ACADEMIQUE':
@@ -137,7 +133,7 @@ export const processMessage = async (
         botResponse = {
           role: 'bot',
           content: "Très bien, je vous redirige vers le formulaire de demande d'effet académique.",
-          redirectUrl: '/etudiant/requetes/nouvelle?type=effet_academique',
+          redirectUrl: '/requetes/nouvelle/effet-academique',
           quickReplies: ['Retour au menu']
         };
       } else {
@@ -154,7 +150,7 @@ export const processMessage = async (
         botResponse = {
           role: 'bot',
           content: "Très bien, je vous redirige vers le formulaire de demande de correction de nom.",
-          redirectUrl: '/etudiant/requetes/nouvelle?type=correction_nom',
+          redirectUrl: '/requetes/nouvelle/correction-nom',
           quickReplies: ['Retour au menu']
         };
       } else {
@@ -171,7 +167,7 @@ export const processMessage = async (
         botResponse = {
           role: 'bot',
           content: "Très bien, je vous redirige vers le formulaire de demande de contestation de note.",
-          redirectUrl: '/etudiant/requetes/nouvelle?type=contestation_note',
+          redirectUrl: '/requetes/nouvelle/contestation-note',
           quickReplies: ['Retour au menu']
         };
       } else {
@@ -224,6 +220,19 @@ async function answerFaqOrGroq(query: string): Promise<ChatMessage> {
   return {
     role: 'bot',
     content: "Je n'ai pas trouvé de réponse exacte à votre question dans ma base de connaissances. Essayez de reformuler ou contactez le secrétariat de l'IUT pour plus d'informations."
+  };
+}
+
+function getMenuResponse(): ChatMessage {
+  return {
+    role: 'bot',
+    content: 'Comment puis-je vous aider ?',
+    quickReplies: [
+      'J\'ai une question (FAQ)',
+      'Faire une requête d\'Effet académique',
+      'Faire une requête de Correction de nom',
+      'Faire une requête de Contestation de note'
+    ]
   };
 }
 

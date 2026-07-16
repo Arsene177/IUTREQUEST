@@ -107,7 +107,9 @@ export default function ChatbotWidget() {
   };
 
   return (
-    <div className="fixed bottom-6 right-6 z-50">
+    // bottom-24 sur mobile : laisse la bottom nav (Sidebar) et son bouton
+    // "Quitter" libres de clics ; le bouton flottant remonte au-dessus.
+    <div className="fixed bottom-24 right-4 sm:right-6 lg:bottom-6 z-30">
       {/* Floating Action Button */}
       {!isOpen && (
         <button
@@ -120,7 +122,7 @@ export default function ChatbotWidget() {
 
       {/* Chat Panel */}
       {isOpen && (
-        <div className="bg-white rounded-2xl shadow-2xl w-80 sm:w-96 h-[500px] flex flex-col border border-gray-200 overflow-hidden animate-in slide-in-from-bottom-5 fade-in duration-300">
+        <div className="bg-white rounded-2xl shadow-2xl w-80 sm:w-96 h-[500px] max-h-[70vh] flex flex-col border border-gray-200 overflow-hidden animate-in slide-in-from-bottom-5 fade-in duration-300">
           {/* Header */}
           <div className="bg-blue-600 text-white p-4 flex justify-between items-center shadow-sm">
             <div className="flex items-center space-x-2">

@@ -2,11 +2,12 @@
 
 import StaffLayout from "@/components/layout/StaffLayout";
 import { useEffect, useState } from "react";
-import { fetchRequeteDetails, transitionRequete } from "@/lib/staffService";
+import { fetchRequeteDetails, transitionRequete, exporterContestationCsv } from "@/lib/staffService";
 import { useAuth } from "@/context/AuthContext";
 import { useRouter, useParams } from "next/navigation";
-import { AlertCircle, ArrowLeft, CheckCircle, Clock, XCircle, Play, Info } from "lucide-react";
+import { AlertCircle, ArrowLeft, CheckCircle, Clock, XCircle, Play, Info, Download } from "lucide-react";
 import Link from "next/link";
+import { CIBLES_ACHEMINEMENT } from "@/lib/constants";
 
 export default function RequeteDetail() {
   const { user, isLoading } = useAuth();
@@ -38,8 +39,6 @@ export default function RequeteDetail() {
     }
   }, [user, params.id]);
 
-  const [serviceCible, setServiceCible] = useState("directeur_adjoint");
-
   const handleTransition = async (action: string, body?: Record<string, unknown>) => {
     if (!window.confirm(`Voulez-vous vraiment effectuer l'action : ${action} ?`)) return;
     setIsProcessing(true);
@@ -68,8 +67,16 @@ export default function RequeteDetail() {
     handleTransition("demander-info", { info_requise: info.trim() });
   };
 
-  const handleAcheminer = () => {
+  const handleAcheminer = (serviceCible: string) => {
     handleTransition("acheminer", { service_cible: serviceCible });
+  };
+
+  const handleExportCsv = async () => {
+    try {
+      await exporterContestationCsv(params.id as string);
+    } catch (err: any) {
+      setError(err.response?.data?.message || "Erreur lors de l'export du CSV");
+    }
   };
 
   const getStatusBadge = (statut: string) => {
@@ -89,7 +96,7 @@ export default function RequeteDetail() {
     );
   };
 
-  if (isLoading || !data) return <StaffLayout><div className="p-8 text-center text-gray-500">Chargement...</div></StaffLayout>;
+  if (isLoading || !data) return <StaffLayout title="Requêtes"><div className="p-8 text-center text-gray-500">Chargement...</div></StaffLayout>;
 
   const { requete, details, historique, etudiant } = data;
 
@@ -97,8 +104,17 @@ export default function RequeteDetail() {
     requete.statut === "EN_ATTENTE" &&
     (user?.role === "secretariat" ||
       (user?.role === "departement" && requete.type === "contestation_note"));
+  const cibles = CIBLES_ACHEMINEMENT[requete.type] ?? [];
   const showAcheminer =
-    requete.statut === "EN_COURS" && ["secretariat", "departement"].includes(user?.role || "");
+    requete.statut === "EN_COURS" &&
+    cibles.length > 0 &&
+    ["secretariat", "departement"].includes(user?.role || "");
+  // Le département exporte le dossier en CSV pour le transmettre à
+  // l'enseignant concerné, une fois la contestation réceptionnée.
+  const showExportCsv =
+    requete.type === "contestation_note" &&
+    ["EN_COURS", "ATTENTE_INFO"].includes(requete.statut) &&
+    user?.role === "departement";
   const showValider =
     ["EN_COURS", "ATTENTE_INFO"].includes(requete.statut) &&
     ["directeur", "directeur_adjoint", "departement"].includes(user?.role || "");
@@ -114,7 +130,7 @@ export default function RequeteDetail() {
     ["scolarite", "secretariat", "cellule_informatique"].includes(user?.role || "");
 
   return (
-    <StaffLayout>
+    <StaffLayout title="Requêtes">
       <div className="max-w-5xl mx-auto space-y-6">
         <header className="flex items-center justify-between">
           <div className="flex items-center space-x-4">
@@ -192,28 +208,24 @@ export default function RequeteDetail() {
                     <CheckCircle className="w-4 h-4" /> <span>Réceptionner</span>
                   </button>
                 )}
-                {showAcheminer && (
-                  <div className="flex items-center gap-2">
-                    <select
-                      value={serviceCible}
-                      onChange={(e) => setServiceCible(e.target.value)}
-                      className="border border-gray-300 rounded-lg px-3 py-2 text-sm"
-                    >
-                      <option value="directeur_adjoint">Directeur adjoint</option>
-                      <option value="directeur">Directeur</option>
-                      <option value="departement">Département</option>
-                      <option value="scolarite">Scolarité</option>
-                      <option value="cellule_informatique">Cellule informatique</option>
-                    </select>
-                    <button
-                      onClick={handleAcheminer}
-                      disabled={isProcessing}
-                      className="flex items-center space-x-2 bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg font-medium transition-colors disabled:opacity-50"
-                    >
-                      <Play className="w-4 h-4" /> <span>Acheminer</span>
-                    </button>
-                  </div>
+                {showExportCsv && (
+                  <button
+                    onClick={handleExportCsv}
+                    className="flex items-center space-x-2 bg-white border border-gray-300 hover:bg-gray-50 text-gray-700 px-4 py-2 rounded-lg font-medium transition-colors"
+                  >
+                    <Download className="w-4 h-4" /> <span>Exporter CSV (pour l&apos;enseignant)</span>
+                  </button>
                 )}
+                {showAcheminer && cibles.map((cible) => (
+                  <button
+                    key={cible.value}
+                    onClick={() => handleAcheminer(cible.value)}
+                    disabled={isProcessing}
+                    className="flex items-center space-x-2 bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg font-medium transition-colors disabled:opacity-50"
+                  >
+                    <Play className="w-4 h-4" /> <span>Acheminer vers {cible.label}</span>
+                  </button>
+                ))}
                 {showValider && (
                   <button onClick={() => handleTransition('valider')} disabled={isProcessing} className="flex items-center space-x-2 bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg font-medium transition-colors disabled:opacity-50">
                     <CheckCircle className="w-4 h-4" /> <span>Valider</span>
@@ -240,7 +252,7 @@ export default function RequeteDetail() {
                   </button>
                 )}
                 
-                {!showReceptionner && !showAcheminer && !showValider && !showExecuter && !showCloturer && !showDemanderInfo && !showRejeter && (
+                {!showReceptionner && !showAcheminer && !showValider && !showExecuter && !showCloturer && !showDemanderInfo && !showRejeter && !showExportCsv && (
                   <p className="text-sm text-gray-500 italic">Aucune action disponible pour votre rôle à cette étape.</p>
                 )}
               </div>

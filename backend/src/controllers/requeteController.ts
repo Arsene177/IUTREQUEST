@@ -11,6 +11,18 @@ import {
 
 const TYPES_VALIDES = ['effet_academique', 'correction_nom', 'contestation_note'];
 
+/**
+ * Service cible valide pour l'acheminement, selon le type de requête.
+ * Reflète le circuit métier réel (cf. buildStaffRoleFilter) : router une
+ * requête vers un service qui ne la traite pas orpheline le dossier (plus
+ * aucun rôle ne peut alors le voir ni le faire progresser).
+ */
+const CIBLES_ACHEMINEMENT_VALIDES: Record<string, string[]> = {
+  effet_academique: ['directeur_adjoint'],
+  correction_nom: ['directeur'],
+  contestation_note: ['cellule_informatique'],
+};
+
 async function fetchRequeteDetails(requeteId: string | number) {
   const [requetes]: any = await pool.execute('SELECT * FROM requete WHERE id = ?', [requeteId]);
   if (requetes.length === 0) return null;
@@ -374,6 +386,102 @@ export const getRequetesStaff = async (req: AuthRequest, res: Response): Promise
   }
 };
 
+/**
+ * GET /requetes/staff/:id/export-csv
+ * Le département exporte le dossier d'une contestation de note en CSV pour
+ * le transmettre à l'enseignant concerné (hors application). Une fois que
+ * l'enseignant a donné son approbation, le département valide la requête
+ * (PUT .../valider) puis l'achemine vers la cellule informatique
+ * (PUT .../acheminer) pour correction dans le système.
+ */
+function echapperCsv(valeur: unknown): string {
+  let texte = valeur === null || valeur === undefined ? '' : String(valeur);
+  // Neutralise l'injection de formule CSV/Excel : un motif de contestation
+  // saisi par l'étudiant (texte libre) qui commencerait par =, +, -, @ ou une
+  // tabulation serait sinon interprété comme une formule par le tableur de
+  // l'agent du département/enseignant à l'ouverture du fichier.
+  if (/^[=+\-@\t]/.test(texte)) {
+    texte = `'${texte}`;
+  }
+  if (/[",\n;]/.test(texte)) {
+    return `"${texte.replace(/"/g, '""')}"`;
+  }
+  return texte;
+}
+
+export const exporterContestationCsv = async (req: AuthRequest, res: Response): Promise<void> => {
+  const { id } = req.params;
+
+  try {
+    const [requetes]: any = await pool.execute('SELECT * FROM requete WHERE id = ?', [id]);
+    if (requetes.length === 0) {
+      res.status(404).json({ message: 'Requête introuvable' });
+      return;
+    }
+
+    const requete = requetes[0];
+    if (requete.type !== 'contestation_note') {
+      res.status(400).json({ message: 'Export CSV disponible uniquement pour les contestations de note' });
+      return;
+    }
+
+    const [noteRows]: any = await pool.execute(
+      'SELECT * FROM requete_note WHERE requete_id = ?',
+      [id]
+    );
+    const details = noteRows[0];
+    if (!details) {
+      res.status(404).json({ message: 'Détails de la contestation introuvables' });
+      return;
+    }
+
+    const [etudiantRows]: any = await pool.execute(
+      `SELECT e.matricule, u.nom, u.prenom
+       FROM etudiant e JOIN users u ON e.user_id = u.id
+       WHERE e.id = ?`,
+      [requete.etudiant_id]
+    );
+    const etudiant = etudiantRows[0] || {};
+
+    const entetes = [
+      'requete_id',
+      'matricule_etudiant',
+      'nom_etudiant',
+      'prenom_etudiant',
+      'code_matiere',
+      'note_actuelle',
+      'note_contestee',
+      'motif_contestation',
+      'id_enseignant',
+      'date_depot',
+    ];
+    const ligne = [
+      requete.id,
+      etudiant.matricule,
+      etudiant.nom,
+      etudiant.prenom,
+      details.code_matiere,
+      details.note_actuelle,
+      details.note_contestee,
+      details.motif_contestation,
+      details.id_enseignant,
+      requete.date_depot,
+    ].map(echapperCsv);
+
+    const csv = `${entetes.join(';')}\n${ligne.join(';')}\n`;
+
+    res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+    res.setHeader(
+      'Content-Disposition',
+      `attachment; filename="contestation-note-${requete.id}.csv"`
+    );
+    // BOM UTF-8 pour un affichage correct des accents dans Excel
+    res.send('﻿' + csv);
+  } catch (error) {
+    res.status(500).json({ message: 'Erreur serveur', error });
+  }
+};
+
 // GET /requetes/staff/stats
 export const getStats = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
@@ -527,21 +635,6 @@ export const receptionnerRequete = async (req: AuthRequest, res: Response): Prom
 export const acheminerRequete = async (req: AuthRequest, res: Response): Promise<void> => {
   const { id } = req.params;
   const { service_cible } = req.body;
-  const validCibles = [
-    'directeur_adjoint',
-    'directeur',
-    'departement',
-    'scolarite',
-    'cellule_informatique',
-  ];
-
-  if (!service_cible || !validCibles.includes(service_cible)) {
-    res.status(400).json({
-      message:
-        'service_cible requis : directeur_adjoint, directeur, departement, scolarite, cellule_informatique',
-    });
-    return;
-  }
 
   try {
     const [requetes]: any = await pool.execute('SELECT * FROM requete WHERE id = ?', [id]);
@@ -551,6 +644,15 @@ export const acheminerRequete = async (req: AuthRequest, res: Response): Promise
     }
 
     const requete = requetes[0];
+
+    const validCibles = CIBLES_ACHEMINEMENT_VALIDES[requete.type] || [];
+    if (!service_cible || !validCibles.includes(service_cible)) {
+      res.status(400).json({
+        message: `service_cible requis pour ce type de requête : ${validCibles.join(', ')}`,
+      });
+      return;
+    }
+
     if (requete.statut !== 'EN_COURS') {
       res.status(400).json({ message: 'Acheminement possible uniquement depuis EN_COURS' });
       return;
