@@ -1,6 +1,45 @@
-import { Response } from 'express';
+import { Request, Response } from 'express';
+import jwt from 'jsonwebtoken';
 import pool from '../config/db';
 import { AuthRequest } from '../middlewares/authMiddleware';
+import { registerClient, unregisterClient } from '../services/sseService';
+
+// GET /notifications/stream
+// EventSource (API navigateur native pour SSE) ne peut pas envoyer d'en-tête
+// Authorization personnalisé : le token JWT est donc passé en query string
+// pour cette seule route, et vérifié manuellement (pas via authMiddleware).
+export const streamNotifications = async (req: Request, res: Response): Promise<void> => {
+  const token = req.query.token as string | undefined;
+  if (!token) {
+    res.status(401).end();
+    return;
+  }
+
+  let userId: number;
+  try {
+    const decoded = jwt.verify(token, process.env.JWT_SECRET as string) as { id: number };
+    userId = decoded.id;
+  } catch {
+    res.status(401).end();
+    return;
+  }
+
+  res.setHeader('Content-Type', 'text/event-stream');
+  res.setHeader('Cache-Control', 'no-cache');
+  res.setHeader('Connection', 'keep-alive');
+  res.flushHeaders();
+
+  registerClient(userId, res);
+  res.write(': connected\n\n');
+
+  // Garde la connexion HTTP ouverte à travers d'éventuels proxys/timeouts.
+  const heartbeat = setInterval(() => res.write(': ping\n\n'), 25000);
+
+  req.on('close', () => {
+    clearInterval(heartbeat);
+    unregisterClient(userId, res);
+  });
+};
 
 // GET /notifications
 export const getNotifications = async (req: AuthRequest, res: Response): Promise<void> => {

@@ -4,6 +4,7 @@ import { AuthProvider } from '@/context/AuthContext';
 import { ToastProvider } from '@/context/ToastContext';
 import { ThemeProvider } from '@/context/ThemeContext';
 import ChatbotWidget from '@/components/ChatbotWidget';
+import { NotificationsListener } from '@/components/NotificationsListener';
 
 export const metadata: Metadata = {
   title: 'JANNGO — IUT de Douala',
@@ -23,6 +24,7 @@ export default function RootLayout({
             <ToastProvider>
               {children}
               <ChatbotWidget />
+              <NotificationsListener />
             </ToastProvider>
           </AuthProvider>
         </ThemeProvider>
