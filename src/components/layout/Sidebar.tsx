@@ -8,6 +8,7 @@ import {
     Bell,
     Settings,
     LogOut,
+    UploadCloud,
 } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
@@ -32,12 +33,24 @@ export default function Sidebar() {
         }
         
         // Routes staff
-        return [
+        const items = [
             { href: '/staff/dashboard', icon: LayoutDashboard, label: 'Tableau de bord' },
             { href: '/staff/requetes', icon: FileText, label: 'Requêtes' },
             { href: '/staff/notifications', icon: Bell, label: 'Notifications' },
             { href: '/staff/parametres', icon: Settings, label: 'Paramètres' },
         ];
+
+        // Import Excel réservé à la cellule informatique (enregistrement en
+        // masse des comptes étudiants à chaque rentrée).
+        if (user.role === 'cellule_informatique') {
+            items.splice(2, 0, {
+                href: '/staff/import-etudiants',
+                icon: UploadCloud,
+                label: 'Import étudiants',
+            });
+        }
+
+        return items;
     };
     
     const navItems = getNavItems();
