@@ -7,7 +7,7 @@ import {
   getRequetesStaff,
   getStats,
   receptionnerRequete,
-  acheminerRequete,
+  validerEtAcheminer,
   validerRequete,
   rejeterRequete,
   demanderInfoRequete,
@@ -31,10 +31,15 @@ router.get('/staff/stats', authMiddleware, roleMiddleware(STAFF_ROLES), getStats
 router.put(
   '/staff/:id/receptionner',
   authMiddleware,
-  roleMiddleware(['secretariat', 'departement']),
+  roleMiddleware(['departement']),
   receptionnerRequete
 );
-router.put('/staff/:id/acheminer', authMiddleware, roleMiddleware(['secretariat', 'departement']), acheminerRequete);
+router.put(
+  '/staff/:id/valider-et-acheminer',
+  authMiddleware,
+  roleMiddleware(['secretariat']),
+  validerEtAcheminer
+);
 router.put('/staff/:id/valider', authMiddleware, roleMiddleware(['directeur', 'directeur_adjoint', 'departement']), validerRequete);
 router.put('/staff/:id/rejeter', authMiddleware, roleMiddleware(['directeur', 'directeur_adjoint', 'departement']), rejeterRequete);
 router.put('/staff/:id/demander-info', authMiddleware, roleMiddleware(STAFF_ROLES), demanderInfoRequete);

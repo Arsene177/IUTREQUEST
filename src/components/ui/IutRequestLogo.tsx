@@ -7,28 +7,18 @@ interface IutRequestLogoProps {
 }
 
 const SIZE_CLASSES = {
-  sm: { badge: "w-8 h-8 text-sm", word: "text-lg" },
-  md: { badge: "w-11 h-11 text-base", word: "text-2xl" },
-  lg: { badge: "w-14 h-14 text-lg", word: "text-3xl" },
+  sm: "h-8",
+  md: "h-11",
+  lg: "h-16",
 };
 
-export function IutRequestLogo({ size = "md", showWordmark = true, className }: IutRequestLogoProps) {
-  const s = SIZE_CLASSES[size];
+export function IutRequestLogo({ size = "md", className }: IutRequestLogoProps) {
   return (
-    <div className={clsx("flex items-center gap-3", className)}>
-      <div
-        className={clsx(
-          "flex items-center justify-center rounded-xl bg-[var(--color-brand)] text-white font-extrabold flex-shrink-0",
-          s.badge
-        )}
-      >
-        IR
-      </div>
-      {showWordmark && (
-        <span className={clsx("font-extrabold text-[var(--color-brand)] tracking-tight", s.word)}>
-          IUTRequest
-        </span>
-      )}
-    </div>
+    // eslint-disable-next-line @next/next/no-img-element -- simple logo asset, pas besoin d'optimisation Next/Image
+    <img
+      src="/logo.png"
+      alt="IUTRequest"
+      className={clsx("w-auto object-contain", SIZE_CLASSES[size], className)}
+    />
   );
 }

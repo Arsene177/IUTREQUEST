@@ -2,11 +2,12 @@
 
 import StaffLayout from "@/components/layout/StaffLayout";
 import { useEffect, useState } from "react";
-import { fetchRequeteDetails, transitionRequete } from "@/lib/staffService";
+import { fetchRequeteDetails, transitionRequete, downloadDocument } from "@/lib/staffService";
 import { useAuth } from "@/context/AuthContext";
 import { useRouter, useParams } from "next/navigation";
-import { AlertCircle, ArrowLeft, CheckCircle, Clock, XCircle, Play, Info } from "lucide-react";
+import { AlertCircle, ArrowLeft, CheckCircle, Clock, XCircle, Play, Info, FileText, Download } from "lucide-react";
 import Link from "next/link";
+import { formatTailleFichier } from "@/lib/format";
 
 export default function RequeteDetail() {
   const { user, isLoading } = useAuth();
@@ -16,6 +17,7 @@ export default function RequeteDetail() {
   const [error, setError] = useState<string>("");
   const [success, setSuccess] = useState<string>("");
   const [isProcessing, setIsProcessing] = useState(false);
+  const [telechargementEnCours, setTelechargementEnCours] = useState<number | null>(null);
 
   const fetchDetails = async () => {
     try {
@@ -37,8 +39,6 @@ export default function RequeteDetail() {
       fetchDetails();
     }
   }, [user, params.id]);
-
-  const [serviceCible, setServiceCible] = useState("directeur_adjoint");
 
   const handleTransition = async (action: string, body?: Record<string, unknown>) => {
     if (!window.confirm(`Voulez-vous vraiment effectuer l'action : ${action} ?`)) return;
@@ -68,8 +68,15 @@ export default function RequeteDetail() {
     handleTransition("demander-info", { info_requise: info.trim() });
   };
 
-  const handleAcheminer = () => {
-    handleTransition("acheminer", { service_cible: serviceCible });
+  const handleTelechargerDocument = async (docId: number, nomFichier: string) => {
+    setTelechargementEnCours(docId);
+    try {
+      await downloadDocument(params.id as string, docId, nomFichier);
+    } catch (err: any) {
+      setError(err?.response?.data?.message || "Impossible de télécharger ce document");
+    } finally {
+      setTelechargementEnCours(null);
+    }
   };
 
   const getStatusBadge = (statut: string) => {
@@ -91,27 +98,44 @@ export default function RequeteDetail() {
 
   if (isLoading || !data) return <StaffLayout><div className="p-8 text-center text-gray-500">Chargement...</div></StaffLayout>;
 
-  const { requete, details, historique, etudiant } = data;
+  const { requete, details, historique, etudiant, documents } = data;
 
+  const AUTRES_ROLES_VALIDATION = ["directeur", "directeur_adjoint", "departement", "scolarite", "cellule_informatique"];
+  const estSecretariat = user?.role === "secretariat";
+  const estDepartementContestation = user?.role === "departement" && requete.type === "contestation_note";
+
+  // Le département ne réceptionne plus séparément — c'est toujours nécessaire pour
+  // prendre en charge une contestation de note fraîchement soumise (EN_ATTENTE).
   const showReceptionner =
-    requete.statut === "EN_ATTENTE" &&
-    (user?.role === "secretariat" ||
-      (user?.role === "departement" && requete.type === "contestation_note"));
-  const showAcheminer =
-    requete.statut === "EN_COURS" && ["secretariat", "departement"].includes(user?.role || "");
+    requete.statut === "EN_ATTENTE" && user?.role === "departement" && requete.type === "contestation_note";
+
+  // Secrétariat : "Valider et acheminer" fusionne réception + acheminement automatique,
+  // disponible dès EN_ATTENTE (plus de bouton "Réceptionner" séparé) et tant que EN_COURS.
+  const showValiderEtAcheminer =
+    estSecretariat && ["EN_ATTENTE", "EN_COURS"].includes(requete.statut);
+  const showDemanderInfoSecretariat = estSecretariat && ["EN_ATTENTE", "EN_COURS"].includes(requete.statut);
+  const showEnAttenteEtudiant = estSecretariat && requete.statut === "ATTENTE_INFO";
+
   const showValider =
+    !estSecretariat &&
     ["EN_COURS", "ATTENTE_INFO"].includes(requete.statut) &&
-    ["directeur", "directeur_adjoint", "departement"].includes(user?.role || "");
+    AUTRES_ROLES_VALIDATION.includes(user?.role || "");
   const showRejeter =
+    !estSecretariat &&
+    !estDepartementContestation &&
     ["EN_COURS", "ATTENTE_INFO"].includes(requete.statut) &&
-    ["directeur", "directeur_adjoint", "departement"].includes(user?.role || "");
-  const showDemanderInfo = requete.statut === "EN_COURS";
+    AUTRES_ROLES_VALIDATION.includes(user?.role || "");
+  const showDemanderInfo =
+    !estSecretariat &&
+    !estDepartementContestation &&
+    requete.statut === "EN_COURS" &&
+    AUTRES_ROLES_VALIDATION.includes(user?.role || "");
   const showExecuter =
     requete.statut === "VALIDEE" &&
     ["cellule_informatique", "scolarite"].includes(user?.role || "");
   const showCloturer =
     ["EN_EXECUTION", "VALIDEE", "REJETEE"].includes(requete.statut) &&
-    ["scolarite", "secretariat", "cellule_informatique"].includes(user?.role || "");
+    ["scolarite", "cellule_informatique"].includes(user?.role || "");
 
   return (
     <StaffLayout>
@@ -192,31 +216,25 @@ export default function RequeteDetail() {
                     <CheckCircle className="w-4 h-4" /> <span>Réceptionner</span>
                   </button>
                 )}
-                {showAcheminer && (
-                  <div className="flex items-center gap-2">
-                    <select
-                      value={serviceCible}
-                      onChange={(e) => setServiceCible(e.target.value)}
-                      className="border border-gray-300 rounded-lg px-3 py-2 text-sm"
-                    >
-                      <option value="directeur_adjoint">Directeur adjoint</option>
-                      <option value="directeur">Directeur</option>
-                      <option value="departement">Département</option>
-                      <option value="scolarite">Scolarité</option>
-                      <option value="cellule_informatique">Cellule informatique</option>
-                    </select>
-                    <button
-                      onClick={handleAcheminer}
-                      disabled={isProcessing}
-                      className="flex items-center space-x-2 bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg font-medium transition-colors disabled:opacity-50"
-                    >
-                      <Play className="w-4 h-4" /> <span>Acheminer</span>
-                    </button>
-                  </div>
+                {showValiderEtAcheminer && (
+                  <button onClick={() => handleTransition('valider-et-acheminer')} disabled={isProcessing} className="flex items-center space-x-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium transition-colors disabled:opacity-50">
+                    <CheckCircle className="w-4 h-4" /> <span>Valider et acheminer</span>
+                  </button>
+                )}
+                {showDemanderInfoSecretariat && (
+                  <button onClick={handleDemanderInfo} disabled={isProcessing} className="flex items-center space-x-2 bg-yellow-500 hover:bg-yellow-600 text-white px-4 py-2 rounded-lg font-medium transition-colors disabled:opacity-50">
+                    <Info className="w-4 h-4" /> <span>Demander des informations</span>
+                  </button>
+                )}
+                {showEnAttenteEtudiant && (
+                  <button disabled className="flex items-center space-x-2 bg-gray-200 text-gray-500 px-4 py-2 rounded-lg font-medium cursor-not-allowed">
+                    <Clock className="w-4 h-4" /> <span>En attente de l&apos;étudiant</span>
+                  </button>
                 )}
                 {showValider && (
                   <button onClick={() => handleTransition('valider')} disabled={isProcessing} className="flex items-center space-x-2 bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg font-medium transition-colors disabled:opacity-50">
-                    <CheckCircle className="w-4 h-4" /> <span>Valider</span>
+                    <CheckCircle className="w-4 h-4" />
+                    <span>{estDepartementContestation ? "Transmettre à la cellule informatique" : "Valider"}</span>
                   </button>
                 )}
                 {showExecuter && (
@@ -231,7 +249,7 @@ export default function RequeteDetail() {
                 )}
                 {showDemanderInfo && (
                   <button onClick={handleDemanderInfo} disabled={isProcessing} className="flex items-center space-x-2 bg-yellow-500 hover:bg-yellow-600 text-white px-4 py-2 rounded-lg font-medium transition-colors disabled:opacity-50">
-                    <Info className="w-4 h-4" /> <span>Demander Info</span>
+                    <Info className="w-4 h-4" /> <span>Demander des informations</span>
                   </button>
                 )}
                 {showRejeter && (
@@ -239,11 +257,46 @@ export default function RequeteDetail() {
                     <XCircle className="w-4 h-4" /> <span>Rejeter</span>
                   </button>
                 )}
-                
-                {!showReceptionner && !showAcheminer && !showValider && !showExecuter && !showCloturer && !showDemanderInfo && !showRejeter && (
+
+                {!showReceptionner && !showValiderEtAcheminer && !showDemanderInfoSecretariat && !showEnAttenteEtudiant && !showValider && !showExecuter && !showCloturer && !showDemanderInfo && !showRejeter && (
                   <p className="text-sm text-gray-500 italic">Aucune action disponible pour votre rôle à cette étape.</p>
                 )}
               </div>
+            </div>
+
+            {/* Documents fournis par l'étudiant */}
+            <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
+              <h3 className="text-lg font-semibold text-gray-900 mb-4">
+                Documents fournis par l&apos;étudiant
+              </h3>
+              {documents && documents.length > 0 ? (
+                <ul className="space-y-2">
+                  {documents.map((doc: { id: number; nom: string; taille: number; uploaded_at: string }) => (
+                    <li
+                      key={doc.id}
+                      className="flex items-center gap-3 bg-gray-50 rounded-xl px-4 py-3"
+                    >
+                      <FileText className="w-5 h-5 text-blue-600 flex-shrink-0" />
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium text-gray-900 truncate">{doc.nom}</p>
+                        <p className="text-xs text-gray-500">
+                          {formatTailleFichier(doc.taille)} — {new Date(doc.uploaded_at).toLocaleString("fr-FR")}
+                        </p>
+                      </div>
+                      <button
+                        onClick={() => handleTelechargerDocument(doc.id, doc.nom)}
+                        disabled={telechargementEnCours === doc.id}
+                        className="flex items-center space-x-1 text-blue-600 hover:text-blue-800 font-medium text-sm disabled:opacity-50 flex-shrink-0"
+                      >
+                        <Download className="w-4 h-4" />
+                        <span>Télécharger</span>
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <p className="text-sm text-gray-500">Aucun document fourni pour cette requête.</p>
+              )}
             </div>
           </div>
 

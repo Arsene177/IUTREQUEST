@@ -76,7 +76,10 @@ export const effetAcademiqueSchema = z.object({
     .regex(/^\d{4}$/, "Année invalide (ex: 2024)."),
   motif: z.string().max(1000).optional().or(z.literal("")),
   priorite: z.enum(["normale", "urgente"]),
-  justificatif: fichierJustificatifSchema,
+  document_quitus: fichierJustificatifSchema,
+  document_profil_etudiant: fichierJustificatifSchema,
+  document_cni: fichierJustificatifSchema,
+  document_lettre_directeur: fichierJustificatifSchema,
 });
 export type EffetAcademiqueFormValues = z.infer<typeof effetAcademiqueSchema>;
 
@@ -92,7 +95,8 @@ export const correctionNomSchema = z.object({
     .min(10, "Veuillez expliquer brièvement l'origine de l'erreur (10 caractères min).")
     .max(1000),
   priorite: z.enum(["normale", "urgente"]),
-  justificatif: fichierJustificatifSchema,
+  document_quitus: fichierJustificatifSchema,
+  document_lettre_directeur: fichierJustificatifSchema,
 });
 export type CorrectionNomFormValues = z.infer<typeof correctionNomSchema>;
 
@@ -115,7 +119,8 @@ export const contestationNoteSchema = z.object({
     .min(30, "Le motif doit faire au moins 30 caractères.")
     .max(1000),
   priorite: z.enum(["normale", "urgente"]),
-  justificatif: fichierJustificatifSchema,
+  document_fiche_requete: fichierJustificatifSchema,
+  document_feuille_note: fichierJustificatifSchema,
 });
 export type ContestationNoteFormValues = z.input<typeof contestationNoteSchema>;
 export type ContestationNoteFormOutput = z.output<typeof contestationNoteSchema>;

@@ -1,5 +1,5 @@
 import { Check } from "lucide-react";
-import { TIMELINE_STEPS } from "@/lib/constants";
+import { TIMELINE_STEPS, STATUT_STEP_INDEX } from "@/lib/constants";
 import type { HistoriqueStatutEntry, StatutRequete } from "@/types";
 import { formatDate, nomComplet } from "@/lib/format";
 
@@ -9,7 +9,7 @@ interface ProgressTimelineProps {
 }
 
 export function ProgressTimeline({ statut, historique }: ProgressTimelineProps) {
-  const etapeActiveIndex = TIMELINE_STEPS.findIndex((step) => step.statuts.includes(statut));
+  const etapeActiveIndex = STATUT_STEP_INDEX[statut] ?? 0;
   const estRejetee = statut === "REJETEE";
 
   if (estRejetee) {

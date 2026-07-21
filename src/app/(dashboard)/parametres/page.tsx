@@ -1,12 +1,12 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { ArrowLeft } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Header } from "@/components/layout/Header";
-import { Card, Button, TextField } from "@/components/ui";
+import { Card, Button, TextField, Spinner } from "@/components/ui";
 import {
   changerMotDePasseSchema,
   type ChangerMotDePasseFormValues,
@@ -14,12 +14,37 @@ import {
 import { authApi } from "@/lib/api/auth";
 import { getApiErrorMessage } from "@/lib/api-client";
 import { useToast } from "@/context/ToastContext";
+import type { User } from "@/types";
 
 type PanneauOuvert = "aucun" | "changer";
 
 export default function ParametresPage() {
   const [panneau, setPanneau] = useState<PanneauOuvert>("aucun");
   const { notify } = useToast();
+
+  const [profil, setProfil] = useState<User | null>(null);
+  const [isLoadingProfil, setIsLoadingProfil] = useState(true);
+
+  useEffect(() => {
+    let annule = false;
+    authApi
+      .me()
+      .then(({ user }) => {
+        if (!annule) setProfil(user);
+      })
+      .catch((err) => {
+        if (!annule) {
+          notify(getApiErrorMessage(err, "Impossible de charger votre profil."), "error");
+        }
+      })
+      .finally(() => {
+        if (!annule) setIsLoadingProfil(false);
+      });
+    return () => {
+      annule = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const {
     register,
@@ -58,6 +83,54 @@ export default function ParametresPage() {
         </Link>
 
         <div className="flex flex-col gap-5">
+          <Card className="px-7 py-6">
+            <p className="font-extrabold text-[var(--color-ink)] mb-4">Mon profil</p>
+            {isLoadingProfil ? (
+              <Spinner label="Chargement du profil…" />
+            ) : profil ? (
+              <dl className="grid grid-cols-2 gap-4">
+                <div>
+                  <dt className="text-xs font-bold uppercase text-[var(--color-ink-muted)]">Nom</dt>
+                  <dd className="text-sm text-[var(--color-ink)] mt-1">{profil.nom}</dd>
+                </div>
+                <div>
+                  <dt className="text-xs font-bold uppercase text-[var(--color-ink-muted)]">Prénom</dt>
+                  <dd className="text-sm text-[var(--color-ink)] mt-1">{profil.prenom}</dd>
+                </div>
+                <div className="col-span-2">
+                  <dt className="text-xs font-bold uppercase text-[var(--color-ink-muted)]">Email</dt>
+                  <dd className="text-sm text-[var(--color-ink)] mt-1">{profil.email}</dd>
+                </div>
+                {profil.matricule && (
+                  <div>
+                    <dt className="text-xs font-bold uppercase text-[var(--color-ink-muted)]">
+                      Matricule
+                    </dt>
+                    <dd className="text-sm text-[var(--color-ink)] mt-1">{profil.matricule}</dd>
+                  </div>
+                )}
+                {profil.filiere && (
+                  <div>
+                    <dt className="text-xs font-bold uppercase text-[var(--color-ink-muted)]">
+                      Filière
+                    </dt>
+                    <dd className="text-sm text-[var(--color-ink)] mt-1">{profil.filiere}</dd>
+                  </div>
+                )}
+                {profil.niveau && (
+                  <div>
+                    <dt className="text-xs font-bold uppercase text-[var(--color-ink-muted)]">
+                      Niveau
+                    </dt>
+                    <dd className="text-sm text-[var(--color-ink)] mt-1">{profil.niveau}</dd>
+                  </div>
+                )}
+              </dl>
+            ) : (
+              <p className="text-sm text-[var(--color-ink-muted)]">Profil indisponible.</p>
+            )}
+          </Card>
+
           <Link href="/mot-de-passe-oublie">
             <Card className="px-7 py-6 cursor-pointer hover:shadow-md transition">
               <p className="font-extrabold text-[var(--color-ink)] text-center">

@@ -24,6 +24,9 @@ export interface User {
   prenom: string;
   email: string;
   role: Role;
+  matricule?: string;
+  filiere?: string;
+  niveau?: string;
 }
 
 export interface Requete {
@@ -114,11 +117,26 @@ export interface MesRequetesResponse {
   pagination: Pagination;
 }
 
+export interface DocumentItem {
+  id: number;
+  nom: string;
+  type: string;
+  taille: number;
+  uploaded_at: string;
+}
+
 export interface RequeteDetailResponse {
   requete: Requete & {
     updated_at: string;
   };
   historique: HistoriqueStatutEntry[];
+  documents: DocumentItem[];
+  etudiant?: {
+    matricule: string;
+    nom: string;
+    prenom: string;
+    email: string;
+  };
 }
 
 export interface UploadDocumentResponse {

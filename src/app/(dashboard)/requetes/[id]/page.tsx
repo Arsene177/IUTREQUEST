@@ -3,15 +3,15 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
-import { ChevronLeft } from "lucide-react";
+import { ChevronLeft, Download, FileText } from "lucide-react";
 import { Header } from "@/components/layout/Header";
 import { ProgressTimeline } from "@/components/requetes/ProgressTimeline";
 import { Card, Button, StatusBadge, Spinner, FileDropzone } from "@/components/ui";
-import { requetesApi } from "@/lib/api/requetes";
+import { requetesApi, documentsApi } from "@/lib/api/requetes";
 import { getApiErrorMessage } from "@/lib/api-client";
 import { useToast } from "@/context/ToastContext";
 import { useAuth } from "@/context/AuthContext";
-import { formatDate, nomComplet } from "@/lib/format";
+import { formatDate, formatTailleFichier, nomComplet } from "@/lib/format";
 import { TYPE_REQUETE_LABELS } from "@/lib/constants";
 import type { RequeteDetailResponse } from "@/types";
 
@@ -30,6 +30,7 @@ export default function RequeteDetailPage() {
   const [isAnnulation, setIsAnnulation] = useState(false);
   const [fichierComplement, setFichierComplement] = useState<File | null>(null);
   const [isEnvoiComplement, setIsEnvoiComplement] = useState(false);
+  const [telechargementEnCours, setTelechargementEnCours] = useState<number | null>(null);
 
   const fetchDetail = async () => {
     setIsLoading(true);
@@ -55,12 +56,23 @@ export default function RequeteDetailPage() {
     setIsAnnulation(true);
     try {
       await requetesApi.annuler(requeteId);
-      notify("Votre requête a été annulée.", "success");
+      notify("Votre demande a été retirée.", "success");
       router.push("/dashboard");
     } catch (err) {
-      notify(getApiErrorMessage(err, "Impossible d'annuler cette requête."), "error");
+      notify(getApiErrorMessage(err, "Impossible de retirer cette demande."), "error");
     } finally {
       setIsAnnulation(false);
+    }
+  };
+
+  const handleTelechargerDocument = async (docId: number, nomFichier: string) => {
+    setTelechargementEnCours(docId);
+    try {
+      await documentsApi.download(requeteId, docId, nomFichier);
+    } catch (err) {
+      notify(getApiErrorMessage(err, "Impossible de télécharger ce document."), "error");
+    } finally {
+      setTelechargementEnCours(null);
     }
   };
 
@@ -148,8 +160,12 @@ export default function RequeteDetailPage() {
 
               {detail.requete.statut === "EN_ATTENTE" && (
                 <div className="mt-6 pt-6 border-t border-[var(--color-cream-line)]">
+                  <p className="text-xs text-[var(--color-ink-faint)] mb-2">
+                    Vous pouvez retirer votre demande tant qu&apos;elle n&apos;a pas encore été
+                    réceptionnée par le secrétariat. Elle ne sera pas rejetée, simplement retirée.
+                  </p>
                   <Button variant="danger" onClick={handleAnnuler} isLoading={isAnnulation}>
-                    Annuler la requête
+                    Retirer ma demande
                   </Button>
                 </div>
               )}
@@ -158,6 +174,42 @@ export default function RequeteDetailPage() {
             <Card className="px-8 py-7">
               <h2 className="font-extrabold text-[var(--color-ink)] mb-5">Progression</h2>
               <ProgressTimeline statut={detail.requete.statut} historique={detail.historique} />
+            </Card>
+
+            <Card className="px-8 py-7">
+              <h2 className="font-extrabold text-[var(--color-ink)] mb-4">Documents fournis</h2>
+              {detail.documents && detail.documents.length > 0 ? (
+                <ul className="flex flex-col gap-2">
+                  {detail.documents.map((doc) => (
+                    <li
+                      key={doc.id}
+                      className="flex items-center gap-3 rounded-[var(--radius-control)] bg-[var(--color-canvas-soft)] px-4 py-3"
+                    >
+                      <FileText size={20} className="text-[var(--color-brand)] flex-shrink-0" />
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium truncate">{doc.nom}</p>
+                        <p className="text-xs text-[var(--color-ink-faint)]">
+                          {formatTailleFichier(doc.taille)} — {formatDate(doc.uploaded_at)}
+                        </p>
+                      </div>
+                      <Button
+                        type="button"
+                        variant="secondary"
+                        onClick={() => handleTelechargerDocument(doc.id, doc.nom)}
+                        isLoading={telechargementEnCours === doc.id}
+                        className="flex-shrink-0"
+                      >
+                        <Download size={16} />
+                        Télécharger
+                      </Button>
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <p className="text-sm text-[var(--color-ink-muted)]">
+                  Aucun document n&apos;a été fourni pour cette requête.
+                </p>
+              )}
             </Card>
 
             {detail.requete.statut === "ATTENTE_INFO" && (

@@ -50,16 +50,27 @@ export const TYPE_REQUETE_DESCRIPTIONS = {
 
 import type { StatutRequete } from "@/types";
 
-export const TIMELINE_STEPS: ReadonlyArray<{
-  key: string;
-  label: string;
-  statuts: readonly StatutRequete[];
-}> = [
-  { key: "depot", label: "Dépot de la requête", statuts: ["EN_ATTENTE", "EN_COURS", "ATTENTE_INFO", "VALIDEE", "EN_EXECUTION", "REJETEE", "CLOTUREE"] },
-  { key: "traitement", label: "Traitement par le secrétariat", statuts: ["EN_COURS", "ATTENTE_INFO", "VALIDEE", "EN_EXECUTION", "REJETEE", "CLOTUREE"] },
-  { key: "validation", label: "Validation par la direction", statuts: ["VALIDEE", "EN_EXECUTION", "REJETEE", "CLOTUREE"] },
-  { key: "cloture", label: "Exécution et clôture", statuts: ["EN_EXECUTION", "CLOTUREE"] },
+export const TIMELINE_STEPS: ReadonlyArray<{ key: string; label: string }> = [
+  { key: "depot", label: "Dépot de la requête" },
+  { key: "traitement", label: "Traitement par le secrétariat" },
+  { key: "validation", label: "Validation par la direction" },
+  { key: "cloture", label: "Exécution et clôture" },
 ];
+
+/**
+ * Index de l'étape correspondant à chaque statut. ATTENTE_INFO reste sur
+ * l'étape "traitement" (le dossier attend une réponse de l'étudiant), et
+ * CLOTUREE pointe au-delà de la dernière étape pour que tout s'affiche complété.
+ */
+export const STATUT_STEP_INDEX: Record<StatutRequete, number> = {
+  EN_ATTENTE: 0,
+  EN_COURS: 1,
+  ATTENTE_INFO: 1,
+  VALIDEE: 2,
+  EN_EXECUTION: 3,
+  CLOTUREE: 4,
+  REJETEE: 0,
+};
 
 export const FILTRE_LABELS: Record<StatutFiltre, string> = {
   EN_ATTENTE: "En attente",

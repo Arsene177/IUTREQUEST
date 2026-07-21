@@ -2,11 +2,12 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { Bell, Plus, Menu } from "lucide-react";
+import { Bell, Plus, Menu, Sun, Moon } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { formatDate } from "@/lib/format";
-import { NotificationsPanel } from "@/components/dashboard/NotificationsPanel";
+import { notificationsApi } from "@/lib/api/notifications";
 import { useMobileSidebar } from "@/context/MobileSidebarContext";
+import { useDarkMode } from "@/context/DarkModeContext";
 
 interface HeaderProps {
   title: string;
@@ -15,14 +16,29 @@ interface HeaderProps {
 
 export function Header({ title, showNewRequestButton = false }: HeaderProps) {
   const [now, setNow] = useState<Date | null>(null);
-  const [panelOpen, setPanelOpen] = useState(false);
+  const [nbNonLues, setNbNonLues] = useState(0);
   const router = useRouter();
   const { open: openSidebar } = useMobileSidebar();
+  const { isDark, toggleDarkMode } = useDarkMode();
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect -- horloge : init au montage puis tick périodique, pattern standard
     setNow(new Date());
     const interval = window.setInterval(() => setNow(new Date()), 30_000);
+    return () => window.clearInterval(interval);
+  }, []);
+
+  useEffect(() => {
+    const chargerNbNonLues = () => {
+      notificationsApi
+        .nbNonLues()
+        .then(({ nb }) => setNbNonLues(nb))
+        .catch(() => {
+          // silencieux : le badge reste simplement inchangé en cas d'erreur réseau
+        });
+    };
+    chargerNbNonLues();
+    const interval = window.setInterval(chargerNbNonLues, 30_000);
     return () => window.clearInterval(interval);
   }, []);
 
@@ -49,16 +65,26 @@ export function Header({ title, showNewRequestButton = false }: HeaderProps) {
       </div>
 
       <div className="flex items-center gap-3 sm:gap-5 flex-shrink-0">
-        <div className="relative">
-          <button
-            onClick={() => setPanelOpen((v) => !v)}
-            aria-label="Notifications"
-            className="text-[var(--color-ink)] hover:opacity-60 transition relative"
-          >
-            <Bell size={22} />
-          </button>
-          {panelOpen && <NotificationsPanel onClose={() => setPanelOpen(false)} />}
-        </div>
+        <button
+          onClick={toggleDarkMode}
+          aria-label={isDark ? "Activer le mode clair" : "Activer le mode sombre"}
+          className="text-[var(--color-ink)] hover:opacity-60 transition"
+        >
+          {isDark ? <Moon size={22} /> : <Sun size={22} />}
+        </button>
+
+        <button
+          onClick={() => router.push("/notifications")}
+          aria-label="Notifications"
+          className="text-[var(--color-ink)] hover:opacity-60 transition relative"
+        >
+          <Bell size={22} />
+          {nbNonLues > 0 && (
+            <span className="absolute -top-1 -right-1 min-w-[16px] h-4 px-1 rounded-full bg-[var(--color-danger)] text-white text-[10px] font-bold flex items-center justify-center">
+              {nbNonLues > 99 ? "99+" : nbNonLues}
+            </span>
+          )}
+        </button>
 
         {showNewRequestButton && (
           <Link

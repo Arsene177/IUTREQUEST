@@ -33,7 +33,13 @@ export default function StaffRequetesList() {
       setIsLoadingData(true);
       try {
         const data = await fetchStaffRequetes(page, limit, statutFilter, typeFilter);
-        setRequetes(data.requetes);
+        // Le secrétariat ne gère pas les contestations de note (traitées par le département) :
+        // filtre défensif côté client en plus du filtrage déjà appliqué par l'API.
+        const requetesFiltrees =
+          user?.role === "secretariat"
+            ? data.requetes.filter((r) => r.type !== "contestation_note")
+            : data.requetes;
+        setRequetes(requetesFiltrees);
         setTotalPages(data.pagination.pages);
       } catch (err: any) {
         setError(err.response?.data?.message || "Erreur lors du chargement des requêtes");
@@ -76,10 +82,10 @@ export default function StaffRequetesList() {
       <div className="space-y-6 max-w-7xl mx-auto">
         <header className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
-            <h1 className="text-3xl font-bold text-gray-900">Gestion des Requêtes</h1>
-            <p className="text-gray-500 mt-1">Gérez et traitez les demandes des étudiants</p>
+            <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">Gestion des Requêtes</h1>
+            <p className="text-gray-500 dark:text-gray-400 mt-1">Gérez et traitez les demandes des étudiants</p>
           </div>
-          
+
           {/* Filters */}
           <div className="flex items-center space-x-3">
             <div className="relative">
@@ -87,7 +93,7 @@ export default function StaffRequetesList() {
               <select
                 value={typeFilter}
                 onChange={(e) => { setTypeFilter(e.target.value); setPage(1); }}
-                className="pl-9 pr-4 py-2 bg-white border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                className="pl-9 pr-4 py-2 bg-white dark:bg-gray-900 dark:text-gray-100 border border-gray-300 dark:border-gray-700 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none"
               >
                 <option value="">Tous les types</option>
                 <option value="effet_academique">Effet Académique</option>
@@ -95,13 +101,13 @@ export default function StaffRequetesList() {
                 <option value="contestation_note">Contestation de Note</option>
               </select>
             </div>
-            
+
             <div className="relative">
               <Filter className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
               <select
                 value={statutFilter}
                 onChange={(e) => { setStatutFilter(e.target.value); setPage(1); }}
-                className="pl-9 pr-4 py-2 bg-white border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                className="pl-9 pr-4 py-2 bg-white dark:bg-gray-900 dark:text-gray-100 border border-gray-300 dark:border-gray-700 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none"
               >
                 <option value="">Tous les statuts</option>
                 <option value="EN_ATTENTE">En attente</option>
@@ -124,10 +130,10 @@ export default function StaffRequetesList() {
         )}
 
         {/* Data Table */}
-        <div className="bg-white border border-gray-200 rounded-2xl shadow-sm overflow-hidden">
+        <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-2xl shadow-sm overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full text-left text-sm">
-              <thead className="bg-gray-50 border-b border-gray-200 text-gray-500 font-medium">
+              <thead className="bg-gray-50 dark:bg-gray-950 border-b border-gray-200 dark:border-gray-800 text-gray-500 dark:text-gray-400 font-medium">
                 <tr>
                   <th className="px-6 py-4">ID</th>
                   <th className="px-6 py-4">Étudiant</th>
@@ -138,33 +144,33 @@ export default function StaffRequetesList() {
                   <th className="px-6 py-4 text-right">Actions</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-gray-100">
+              <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
                 {isLoadingData ? (
                   <tr>
-                    <td colSpan={7} className="px-6 py-8 text-center text-gray-500">Chargement des requêtes...</td>
+                    <td colSpan={7} className="px-6 py-8 text-center text-gray-500 dark:text-gray-400">Chargement des requêtes...</td>
                   </tr>
                 ) : requetes.length === 0 ? (
                   <tr>
-                    <td colSpan={7} className="px-6 py-8 text-center text-gray-500">Aucune requête trouvée</td>
+                    <td colSpan={7} className="px-6 py-8 text-center text-gray-500 dark:text-gray-400">Aucune requête trouvée</td>
                   </tr>
                 ) : (
                   requetes.map((req) => (
-                    <tr key={req.id} className="hover:bg-gray-50 transition-colors">
-                      <td className="px-6 py-4 font-medium text-gray-900">#{req.id}</td>
+                    <tr key={req.id} className="hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
+                      <td className="px-6 py-4 font-medium text-gray-900 dark:text-gray-100">#{req.id}</td>
                       <td className="px-6 py-4">
-                        <div className="font-medium text-gray-900">{req.etudiant_nom} {req.etudiant_prenom}</div>
-                        <div className="text-gray-500 text-xs">{req.matricule}</div>
+                        <div className="font-medium text-gray-900 dark:text-gray-100">{req.etudiant_nom} {req.etudiant_prenom}</div>
+                        <div className="text-gray-500 dark:text-gray-400 text-xs">{req.matricule}</div>
                       </td>
-                      <td className="px-6 py-4 capitalize text-gray-700">{req.type.replace('_', ' ')}</td>
+                      <td className="px-6 py-4 capitalize text-gray-700 dark:text-gray-300">{req.type.replace('_', ' ')}</td>
                       <td className="px-6 py-4">
-                        <span className={`px-2 py-1 rounded-md text-xs font-medium ${req.priorite === 'urgente' ? 'bg-red-100 text-red-700' : 'bg-gray-100 text-gray-700'}`}>
+                        <span className={`px-2 py-1 rounded-md text-xs font-medium ${req.priorite === 'urgente' ? 'bg-red-100 dark:bg-red-950 text-red-700 dark:text-red-400' : 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300'}`}>
                           {req.priorite}
                         </span>
                       </td>
-                      <td className="px-6 py-4 text-gray-600">{formatDate(req.date_depot)}</td>
+                      <td className="px-6 py-4 text-gray-600 dark:text-gray-400">{formatDate(req.date_depot)}</td>
                       <td className="px-6 py-4">{getStatusBadge(req.statut)}</td>
                       <td className="px-6 py-4 text-right">
-                        <Link href={`/staff/requetes/${req.id}`} className="inline-flex items-center space-x-1 text-blue-600 hover:text-blue-800 font-medium">
+                        <Link href={`/staff/requetes/${req.id}`} className="inline-flex items-center space-x-1 text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 font-medium">
                           <Eye className="w-4 h-4" />
                           <span>Traiter</span>
                         </Link>
@@ -175,25 +181,25 @@ export default function StaffRequetesList() {
               </tbody>
             </table>
           </div>
-          
+
           {/* Pagination */}
           {!isLoadingData && totalPages > 1 && (
-            <div className="px-6 py-4 border-t border-gray-200 flex items-center justify-between bg-gray-50">
-              <span className="text-sm text-gray-600">
+            <div className="px-6 py-4 border-t border-gray-200 dark:border-gray-800 flex items-center justify-between bg-gray-50 dark:bg-gray-950">
+              <span className="text-sm text-gray-600 dark:text-gray-400">
                 Page <span className="font-medium">{page}</span> sur <span className="font-medium">{totalPages}</span>
               </span>
               <div className="flex space-x-2">
                 <button
                   onClick={() => setPage(p => Math.max(1, p - 1))}
                   disabled={page === 1}
-                  className="p-2 border border-gray-300 rounded-lg bg-white text-gray-600 disabled:opacity-50 hover:bg-gray-50"
+                  className="p-2 border border-gray-300 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-900 text-gray-600 dark:text-gray-300 disabled:opacity-50 hover:bg-gray-50 dark:hover:bg-gray-800"
                 >
                   <ChevronLeft className="w-5 h-5" />
                 </button>
                 <button
                   onClick={() => setPage(p => Math.min(totalPages, p + 1))}
                   disabled={page === totalPages}
-                  className="p-2 border border-gray-300 rounded-lg bg-white text-gray-600 disabled:opacity-50 hover:bg-gray-50"
+                  className="p-2 border border-gray-300 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-900 text-gray-600 dark:text-gray-300 disabled:opacity-50 hover:bg-gray-50 dark:hover:bg-gray-800"
                 >
                   <ChevronRight className="w-5 h-5" />
                 </button>

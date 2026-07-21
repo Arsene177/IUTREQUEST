@@ -12,12 +12,17 @@
     {
         "keywords": ["documents", "pièces justificatives", "justificatif", "papier"],
         "question": "Quels documents sont nécessaires pour mes requêtes ?",
-        "answer": "Cela dépend de la requête. Pour un effet académique (ex: absence), un justificatif médical ou professionnel est souvent requis. Pour une correction de nom, une pièce d'identité officielle est nécessaire. Les documents précis vous seront demandés lors du remplissage du formulaire."
+        "answer": "Cela dépend de la requête. Pour un effet académique (certificat de scolarité, relevé de notes, diplôme, attestation), aucune pièce n'est en général requise, hors motif particulier. Pour une correction de nom, une pièce d'identité officielle est nécessaire. Les documents précis vous seront demandés lors du remplissage du formulaire."
     },
     {
-        "keywords": ["absence", "malade", "maladie", "justifier", "manqué", "effet académique"],
-        "question": "Comment justifier une absence (Effet académique) ?",
-        "answer": "Si vous avez manqué un cours ou un examen pour une raison valable (maladie, urgence), vous devez soumettre une requête d'« Effet académique » accompagnée de vos justificatifs (ex: certificat médical) dans les 48 heures suivant votre absence."
+        "keywords": ["effet académique", "attestation", "certificat de scolarité", "relevé de notes", "diplôme", "certificat"],
+        "question": "Qu'est-ce qu'une requête « Effet académique » ?",
+        "answer": "Une requête d'Effet Académique vous permet d'obtenir un certificat de scolarité, un relevé de notes, une attestation de scolarité ou un diplôme auprès de l'administration de l'IUT de Douala."
+    },
+    {
+        "keywords": ["absence", "malade", "maladie", "justifier", "manqué"],
+        "question": "Comment justifier une absence à un cours ou un examen ?",
+        "answer": "La justification d'une absence à un cours ou un examen ne se fait pas via une requête « Effet académique » sur la plateforme. Contactez directement votre enseignant ou le secrétariat pédagogique avec un justificatif (ex: certificat médical)."
     },
     {
         "keywords": ["nom", "prénom", "erreur", "orthographe", "correction de nom"],

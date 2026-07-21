@@ -12,6 +12,7 @@ interface RequeteFormShellProps {
   onSubmit: () => void;
   isSubmitting: boolean;
   submitLabel?: string;
+  submitDisabled?: boolean;
 }
 
 export function RequeteFormShell({
@@ -21,6 +22,7 @@ export function RequeteFormShell({
   onSubmit,
   isSubmitting,
   submitLabel = "Soumettre la requête",
+  submitDisabled = false,
 }: RequeteFormShellProps) {
   return (
     <main className="px-4 sm:px-8 py-6 sm:py-8 max-w-2xl">
@@ -57,7 +59,13 @@ export function RequeteFormShell({
                 Annuler
               </Button>
             </Link>
-            <Button type="submit" isLoading={isSubmitting} fullWidth className="sm:w-auto">
+            <Button
+              type="submit"
+              isLoading={isSubmitting}
+              disabled={submitDisabled}
+              fullWidth
+              className="sm:w-auto"
+            >
               {submitLabel}
             </Button>
           </div>

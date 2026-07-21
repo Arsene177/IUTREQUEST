@@ -1,5 +1,8 @@
 @import "tailwindcss";
 
+/* Active les utilitaires dark: via la classe .dark sur <html> (plutôt que prefers-color-scheme) */
+@custom-variant dark (&:where(.dark, .dark *));
+
 :root {
   --background: #f7f8fc;
   --foreground: #0f172a;
@@ -32,6 +35,38 @@
   --color-status-info-bg: #ffedd5;
   --radius-control: 0.75rem;
   --radius-card: 1rem;
+}
+
+.dark {
+  --background: #0f172a;
+  --foreground: #e2e8f0;
+  --color-canvas: #0f172a;
+  --color-canvas-soft: #1e293b;
+  --color-cream: #1e293b;
+  --color-cream-soft: #172033;
+  --color-cream-line: #334155;
+  --color-brand: #3b82f6;
+  --color-brand-soft: #1e3a5f;
+  --color-brand-dark: #60a5fa;
+  --color-danger: #f87171;
+  --color-danger-soft: #450a0a;
+  --color-success: #4ade80;
+  --color-success-soft: #052e16;
+  --color-warning: #fbbf24;
+  --color-warning-soft: #451a03;
+  --color-ink: #f1f5f9;
+  --color-ink-muted: #94a3b8;
+  --color-ink-faint: #64748b;
+  --color-status-attente: #fbbf24;
+  --color-status-attente-bg: #451a03;
+  --color-status-cours: #60a5fa;
+  --color-status-cours-bg: #1e3a5f;
+  --color-status-validee: #a78bfa;
+  --color-status-validee-bg: #2e1065;
+  --color-status-rejetee: #f87171;
+  --color-status-rejetee-bg: #450a0a;
+  --color-status-info: #fb923c;
+  --color-status-info-bg: #431407;
 }
 
 @theme inline {

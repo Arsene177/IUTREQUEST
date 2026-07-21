@@ -2,16 +2,20 @@
 
 import { useState, useEffect, useRef } from "react";
 import { MessageCircle, X, Send } from "lucide-react";
+import { useRouter } from "next/navigation";
 import { API_BASE_URL } from "@/lib/api-client";
+import { useAuth } from "@/context/AuthContext";
 
 interface ChatMessage {
   role: "bot" | "user";
   content: string;
   quickReplies?: string[];
-  redirectUrl?: string;
+  redirectTo?: string;
 }
 
 export default function ChatbotWidget() {
+  const { user, isLoading: isAuthLoading } = useAuth();
+  const router = useRouter();
   const [isOpen, setIsOpen] = useState(false);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [inputMessage, setInputMessage] = useState("");
@@ -19,31 +23,20 @@ export default function ChatbotWidget() {
   const [isLoading, setIsLoading] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  // Initialize session ID on mount
+  // Un nouveau sessionId (et un historique vide) est généré à chaque connexion
+  // d'étudiant — si l'utilisateur change (nouvelle connexion), tout repart à zéro.
   useEffect(() => {
-    let sid = sessionStorage.getItem("chatbot_session_id");
-    if (!sid) {
-      sid = Math.random().toString(36).substring(2, 15);
-      sessionStorage.setItem("chatbot_session_id", sid);
+    if (!user) {
+      setSessionId("");
+      setMessages([]);
+      return;
     }
-    setSessionId(sid);
+    setSessionId(`session_${user.id}_${Date.now()}`);
+    setMessages([]);
+    setIsOpen(false);
+  }, [user?.id]);
 
-    // Load history from session storage if exists
-    const history = sessionStorage.getItem("chatbot_history");
-    if (history) {
-      try {
-        setMessages(JSON.parse(history));
-      } catch (e) {
-        // failed to parse
-      }
-    }
-  }, []);
-
-  // Save history to session storage when updated
   useEffect(() => {
-    if (messages.length > 0) {
-      sessionStorage.setItem("chatbot_history", JSON.stringify(messages));
-    }
     scrollToBottom();
   }, [messages]);
 
@@ -78,10 +71,13 @@ export default function ChatbotWidget() {
       const botMessage: ChatMessage = await response.json();
       setMessages((prev) => [...prev, botMessage]);
 
-      if (botMessage.redirectUrl) {
-        // Optionally auto-redirect, or let the user click a link.
-        // For now, we just append a link to the message content if there is a redirect
-        // Actually, we'll render it as a link in the UI.
+      if (botMessage.redirectTo) {
+        // Laisse le temps à l'étudiant de lire le message avant de naviguer.
+        const destination = botMessage.redirectTo;
+        setTimeout(() => {
+          router.push(destination);
+          setIsOpen(false);
+        }, 1500);
       }
     } catch (error) {
       console.error("Failed to send message:", error);
@@ -100,42 +96,60 @@ export default function ChatbotWidget() {
 
   const handleOpen = () => {
     setIsOpen(true);
-    // Send initial empty message to trigger greeting if no history
     if (messages.length === 0 && sessionId) {
-      sendMessage("");
+      // Appel direct sans ajouter de message utilisateur dans l'historique
+      setIsLoading(true);
+      fetch(`${API_BASE_URL}/chatbot/message`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ sessionId, message: "" }),
+      })
+        .then((r) => r.json())
+        .then((botMessage) => {
+          setMessages([botMessage]);
+        })
+        .catch(console.error)
+        .finally(() => setIsLoading(false));
     }
   };
 
+  // Le chatbot n'existe que pour les étudiants connectés.
+  if (isAuthLoading || !user || user.role !== "etudiant") {
+    return null;
+  }
+
   return (
     <div className="fixed bottom-6 right-6 z-50">
-      {/* Floating Action Button */}
+      {/* Bulle flottante */}
       {!isOpen && (
         <button
           onClick={handleOpen}
+          aria-label="Ouvrir l'assistant JANNGO"
           className="bg-blue-600 hover:bg-blue-700 text-white rounded-full p-4 shadow-lg transition-transform hover:scale-110 flex items-center justify-center"
         >
           <MessageCircle size={28} />
         </button>
       )}
 
-      {/* Chat Panel */}
+      {/* Panneau de conversation */}
       {isOpen && (
-        <div className="bg-white rounded-2xl shadow-2xl w-80 sm:w-96 h-[500px] flex flex-col border border-gray-200 overflow-hidden animate-in slide-in-from-bottom-5 fade-in duration-300">
+        <div className="bg-white rounded-2xl shadow-2xl w-[380px] max-w-[calc(100vw-3rem)] h-[500px] flex flex-col border border-gray-200 overflow-hidden animate-in slide-in-from-bottom-5 fade-in duration-300">
           {/* Header */}
-          <div className="bg-blue-600 text-white p-4 flex justify-between items-center shadow-sm">
+          <div className="bg-blue-600 text-white p-4 flex justify-between items-center shadow-sm flex-shrink-0">
             <div className="flex items-center space-x-2">
               <MessageCircle size={20} />
-              <h3 className="font-semibold text-lg">Assistant IUT</h3>
+              <h3 className="font-semibold text-lg">Assistant JANNGO</h3>
             </div>
             <button
               onClick={() => setIsOpen(false)}
+              aria-label="Fermer l'assistant"
               className="text-white/80 hover:text-white transition-colors"
             >
               <X size={20} />
             </button>
           </div>
 
-          {/* Messages Area */}
+          {/* Historique des messages */}
           <div className="flex-1 p-4 overflow-y-auto bg-gray-50 flex flex-col space-y-4">
             {messages.map((msg, index) => (
               <div
@@ -152,19 +166,12 @@ export default function ChatbotWidget() {
                   }`}
                 >
                   <p className="text-sm whitespace-pre-wrap">{msg.content}</p>
-                  {msg.redirectUrl && (
-                    <a
-                      href={msg.redirectUrl}
-                      className="inline-block mt-2 text-xs bg-blue-100 text-blue-700 px-3 py-1.5 rounded-full font-medium hover:bg-blue-200 transition-colors"
-                    >
-                      Aller au formulaire →
-                    </a>
-                  )}
                 </div>
 
-                {/* Quick Replies (only show for the latest bot message) */}
+                {/* Quick replies (uniquement sur le dernier message du bot) */}
                 {msg.role === "bot" &&
                   msg.quickReplies &&
+                  msg.quickReplies.length > 0 &&
                   index === messages.length - 1 && (
                     <div className="flex flex-wrap gap-2 mt-3 w-full">
                       {msg.quickReplies.map((reply, i) => (
@@ -192,8 +199,8 @@ export default function ChatbotWidget() {
             <div ref={messagesEndRef} />
           </div>
 
-          {/* Input Area */}
-          <div className="p-3 bg-white border-t border-gray-200">
+          {/* Saisie */}
+          <div className="p-3 bg-white border-t border-gray-200 flex-shrink-0">
             <form
               onSubmit={(e) => {
                 e.preventDefault();
@@ -212,6 +219,7 @@ export default function ChatbotWidget() {
               <button
                 type="submit"
                 disabled={!inputMessage.trim() || isLoading}
+                aria-label="Envoyer"
                 className="bg-blue-600 text-white rounded-full p-2.5 flex items-center justify-center hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
               >
                 <Send size={18} />

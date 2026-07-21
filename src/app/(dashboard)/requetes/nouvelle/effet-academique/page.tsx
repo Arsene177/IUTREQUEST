@@ -22,11 +22,21 @@ export default function EffetAcademiquePage() {
     register,
     control,
     handleSubmit,
+    watch,
     formState: { errors },
   } = useForm<EffetAcademiqueFormValues>({
     resolver: zodResolver(effetAcademiqueSchema),
     defaultValues: { priorite: "normale" },
   });
+
+  const [documentQuitus, documentProfilEtudiant, documentCni, documentLettreDirecteur] = watch([
+    "document_quitus",
+    "document_profil_etudiant",
+    "document_cni",
+    "document_lettre_directeur",
+  ]);
+  const tousDocumentsFournis =
+    !!documentQuitus && !!documentProfilEtudiant && !!documentCni && !!documentLettreDirecteur;
 
   const onSubmit = (values: EffetAcademiqueFormValues) => {
     const payload: PayloadEffetAcademique = {
@@ -36,7 +46,12 @@ export default function EffetAcademiquePage() {
       annee_academique: `${values.annee_academique_debut}-${values.annee_academique_fin}`,
       motif: values.motif || undefined,
     };
-    submit(payload, values.justificatif);
+    submit(payload, [
+      values.document_quitus,
+      values.document_profil_etudiant,
+      values.document_cni,
+      values.document_lettre_directeur,
+    ]);
   };
 
   return (
@@ -47,6 +62,7 @@ export default function EffetAcademiquePage() {
         description="Demande d'obtention d'effets académique"
         onSubmit={handleSubmit(onSubmit)}
         isSubmitting={isSubmitting}
+        submitDisabled={!tousDocumentsFournis}
       >
         <SelectField
           label="Nom de l'effet académique"
@@ -81,15 +97,58 @@ export default function EffetAcademiquePage() {
           {...register("motif")}
         />
 
+        <p className="text-sm font-bold text-[var(--color-ink)]">
+          Documents obligatoires (4 fichiers requis)
+        </p>
+
         <Controller
           control={control}
-          name="justificatif"
+          name="document_quitus"
           render={({ field }) => (
             <FileDropzone
-              label="Justificatif (profil étudiant ou reçu de paiement)"
+              label="Quitus"
               value={field.value ?? null}
               onChange={field.onChange}
-              error={errors.justificatif?.message}
+              error={errors.document_quitus?.message}
+            />
+          )}
+        />
+
+        <Controller
+          control={control}
+          name="document_profil_etudiant"
+          render={({ field }) => (
+            <FileDropzone
+              label="Profil étudiant"
+              value={field.value ?? null}
+              onChange={field.onChange}
+              error={errors.document_profil_etudiant?.message}
+            />
+          )}
+        />
+
+        <Controller
+          control={control}
+          name="document_cni"
+          render={({ field }) => (
+            <FileDropzone
+              label="CNI"
+              value={field.value ?? null}
+              onChange={field.onChange}
+              error={errors.document_cni?.message}
+            />
+          )}
+        />
+
+        <Controller
+          control={control}
+          name="document_lettre_directeur"
+          render={({ field }) => (
+            <FileDropzone
+              label="Lettre adressée au directeur"
+              value={field.value ?? null}
+              onChange={field.onChange}
+              error={errors.document_lettre_directeur?.message}
             />
           )}
         />

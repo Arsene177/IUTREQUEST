@@ -11,6 +11,11 @@ export function formatDateHeure(value: string | Date): string {
   return formatDate(value, "dd/MM/yyyy HH:mm");
 }
 
+/** Ex: "18 juillet 2026 à 14h30" */
+export function formatDateLettres(value: string | Date): string {
+  return formatDate(value, "d MMMM yyyy 'à' HH'h'mm");
+}
+
 export function formatTailleFichier(octets: number): string {
   if (octets < 1024) return `${octets} o`;
   if (octets < 1024 * 1024) return `${(octets / 1024).toFixed(1)} Ko`;

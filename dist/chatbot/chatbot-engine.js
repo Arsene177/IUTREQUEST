@@ -1,18 +1,87 @@
 "use strict";
-var __importDefault = (this && this.__importDefault) || function (mod) {
-    return (mod && mod.__esModule) ? mod : { "default": mod };
-};
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.processMessage = void 0;
-const faq_json_1 = __importDefault(require("./faq.json"));
-const groq_service_1 = require("./groq-service");
 // In-memory store (Replace with Redis or DB in production if needed)
 const sessions = {};
-// Keywords matching
-const containsKeywords = (text, keywords) => {
-    const lowerText = text.toLowerCase();
-    return keywords.some(kw => lowerText.includes(kw.toLowerCase()));
-};
+const QUICK_REPLY_MENU = '🏠 Menu principal';
+function matchesAny(text, keywords) {
+    return keywords.some((kw) => text.includes(kw));
+}
+// --- Réponses des états ---
+function accueilResponse() {
+    return {
+        role: 'bot',
+        content: "Bonjour ! Je suis l'assistant JANNGO. Comment puis-je vous aider ?",
+        quickReplies: ['📄 Effet Académique', '✏️ Correction de Nom', '📝 Contestation de Note', '❓ Aide générale'],
+    };
+}
+function effetAcademiqueResponse() {
+    return {
+        role: 'bot',
+        content: "Une requête d'Effet Académique vous permet d'obtenir un certificat de scolarité, un relevé de notes, une attestation de scolarité ou un diplôme auprès de l'administration de l'IUT de Douala.\n\nDocuments requis :\n• Quitus\n• Profil étudiant\n• CNI\n• Lettre adressée au directeur\n\nSouhaitez-vous remplir le formulaire ?",
+        quickReplies: ['✅ Remplir le formulaire', QUICK_REPLY_MENU],
+    };
+}
+function redirectEffetResponse() {
+    return {
+        role: 'bot',
+        content: "Je vous redirige vers le formulaire de demande d'Effet Académique.",
+        redirectTo: '/requetes/nouvelle/effet-academique',
+        quickReplies: [],
+    };
+}
+function correctionNomResponse() {
+    return {
+        role: 'bot',
+        content: "Une requête de Correction de Nom vous permet de corriger une erreur orthographique sur votre nom dans les registres de l'IUT.\n\nDocuments requis :\n• Quitus\n• Lettre adressée au directeur\n\nSouhaitez-vous remplir le formulaire ?",
+        quickReplies: ['✅ Remplir le formulaire', QUICK_REPLY_MENU],
+    };
+}
+function redirectNomResponse() {
+    return {
+        role: 'bot',
+        content: "Je vous redirige vers le formulaire de correction de nom.",
+        redirectTo: '/requetes/nouvelle/correction-nom',
+        quickReplies: [],
+    };
+}
+function contestationNoteResponse() {
+    return {
+        role: 'bot',
+        content: "Une requête de Contestation de Note vous permet de contester une note que vous estimez incorrecte.\n\nDocuments requis :\n• Fiche de requête\n• Feuille de note (si disponible)\n\nSouhaitez-vous remplir le formulaire ?",
+        quickReplies: ['✅ Remplir le formulaire', QUICK_REPLY_MENU],
+    };
+}
+function redirectNoteResponse() {
+    return {
+        role: 'bot',
+        content: "Je vous redirige vers le formulaire de contestation de note.",
+        redirectTo: '/requetes/nouvelle/contestation-note',
+        quickReplies: [],
+    };
+}
+function aideResponse() {
+    return {
+        role: 'bot',
+        content: "Je peux vous aider avec :\n\n• 📄 Effet Académique : obtenir certificats, relevés, attestations\n• ✏️ Correction de Nom : corriger une erreur sur votre nom\n• 📝 Contestation de Note : contester une note incorrecte\n\nQue souhaitez-vous faire ?",
+        quickReplies: ['📄 Effet Académique', '✏️ Correction de Nom', '📝 Contestation de Note', QUICK_REPLY_MENU],
+    };
+}
+function matchEffetAcademique(text) {
+    return matchesAny(text, ['effet académique', 'effet academique', 'effet', 'academique', 'académique']);
+}
+function matchCorrectionNom(text) {
+    return matchesAny(text, ['correction de nom', 'correction', 'nom']);
+}
+function matchContestationNote(text) {
+    return matchesAny(text, ['contestation de note', 'contestation', 'note']);
+}
+function matchAideGenerale(text) {
+    return matchesAny(text, ['aide générale', 'aide generale', 'aide', 'help']);
+}
+function matchRemplirFormulaire(text) {
+    return matchesAny(text, ['remplir le formulaire', 'remplir', 'formulaire']);
+}
 // Main Engine Function
 const processMessage = async (sessionId, message, userId) => {
     // Initialize session if not exists
@@ -20,10 +89,9 @@ const processMessage = async (sessionId, message, userId) => {
         sessions[sessionId] = {
             sessionId,
             userId,
-            state: 'INITIAL',
+            state: 'ACCUEIL',
             history: [],
-            context: {},
-            lastUpdated: Date.now()
+            lastUpdated: Date.now(),
         };
     }
     const session = sessions[sessionId];
@@ -35,131 +103,95 @@ const processMessage = async (sessionId, message, userId) => {
         session.history.push({ role: 'user', content: message });
     }
     const lowerMessage = message.trim().toLowerCase();
-    let botResponse = { role: 'bot', content: 'Je ne suis pas sûr de comprendre.' };
-    // Global reset commands
-    if (lowerMessage === 'menu' || lowerMessage === 'recommencer' || lowerMessage === 'accueil') {
-        session.state = 'IDENTIFY_NEED';
+    let botResponse;
+    // Message vide (ouverture du widget) : affiche l'accueil sans autre traitement.
+    if (!message.trim()) {
+        session.state = 'ACCUEIL';
+        botResponse = accueilResponse();
+        session.history.push(botResponse);
+        return botResponse;
     }
-    // State Machine
+    // Retour au menu principal depuis n'importe quel état.
+    if (lowerMessage.includes('menu') || message.includes('🏠')) {
+        session.state = 'ACCUEIL';
+        botResponse = accueilResponse();
+        session.history.push(botResponse);
+        return botResponse;
+    }
     switch (session.state) {
-        case 'INITIAL':
-        case 'GREETING':
-            botResponse = {
-                role: 'bot',
-                content: "Bonjour ! Je suis l'assistant virtuel de l'IUT. Comment puis-je vous aider aujourd'hui ?",
-                quickReplies: [
-                    'J\'ai une question (FAQ)',
-                    'Faire une requête d\'Effet académique',
-                    'Faire une requête de Correction de nom',
-                    'Faire une requête de Contestation de note'
-                ]
-            };
-            session.state = 'IDENTIFY_NEED';
-            break;
-        case 'IDENTIFY_NEED':
-            if (lowerMessage.includes('faq') || lowerMessage.includes('question')) {
-                botResponse = {
-                    role: 'bot',
-                    content: "Posez-moi votre question concernant les procédures, délais ou contacts, et je chercherai dans notre FAQ."
-                };
-                session.state = 'FAQ_SEARCH';
+        case 'ACCUEIL':
+            if (matchEffetAcademique(lowerMessage)) {
+                session.state = 'EFFET_ACADEMIQUE';
+                botResponse = effetAcademiqueResponse();
             }
-            else if (lowerMessage.includes('effet') || lowerMessage.includes('académique') || lowerMessage.includes('absence')) {
-                session.state = 'GUIDE_EFFET_ACADEMIQUE';
-                botResponse = getGuideEffetAcademique();
+            else if (matchCorrectionNom(lowerMessage)) {
+                session.state = 'CORRECTION_NOM';
+                botResponse = correctionNomResponse();
             }
-            else if (lowerMessage.includes('nom') || lowerMessage.includes('correction')) {
-                session.state = 'GUIDE_CORRECTION_NOM';
-                botResponse = getGuideCorrectionNom();
+            else if (matchContestationNote(lowerMessage)) {
+                session.state = 'CONTESTATION_NOTE';
+                botResponse = contestationNoteResponse();
             }
-            else if (lowerMessage.includes('note') || lowerMessage.includes('contestation')) {
-                session.state = 'GUIDE_CONTESTATION_NOTE';
-                botResponse = getGuideContestationNote();
+            else if (matchAideGenerale(lowerMessage)) {
+                session.state = 'AIDE';
+                botResponse = aideResponse();
             }
             else {
-                // Fallback to FAQ search if no exact match
-                botResponse = searchFAQ(message);
-                botResponse.quickReplies = ['Retour au menu'];
-                session.state = 'FAQ_SEARCH';
+                session.state = 'ACCUEIL';
+                botResponse = accueilResponse();
             }
             break;
-        case 'FAQ_SEARCH':
-            if (lowerMessage === 'retour au menu') {
-                session.state = 'IDENTIFY_NEED';
-                botResponse = {
-                    role: 'bot',
-                    content: "Comment puis-je vous aider ?",
-                    quickReplies: [
-                        'J\'ai une question (FAQ)',
-                        'Faire une requête d\'Effet académique',
-                        'Faire une requête de Correction de nom',
-                        'Faire une requête de Contestation de note'
-                    ]
-                };
+        case 'EFFET_ACADEMIQUE':
+            if (matchRemplirFormulaire(lowerMessage)) {
+                session.state = 'REDIRECT_EFFET';
+                botResponse = redirectEffetResponse();
             }
             else {
-                botResponse = await answerFaqOrGroq(message);
-                botResponse.quickReplies = ['Retour au menu'];
+                botResponse = effetAcademiqueResponse();
             }
             break;
-        case 'GUIDE_EFFET_ACADEMIQUE':
-            if (lowerMessage === 'remplir le formulaire') {
-                botResponse = {
-                    role: 'bot',
-                    content: "Très bien, je vous redirige vers le formulaire de demande d'effet académique.",
-                    redirectUrl: '/etudiant/requetes/nouvelle?type=effet_academique',
-                    quickReplies: ['Retour au menu']
-                };
+        case 'CORRECTION_NOM':
+            if (matchRemplirFormulaire(lowerMessage)) {
+                session.state = 'REDIRECT_NOM';
+                botResponse = redirectNomResponse();
             }
             else {
-                botResponse = {
-                    role: 'bot',
-                    content: "Avez-vous d'autres questions ou souhaitez-vous accéder au formulaire ?",
-                    quickReplies: ['Remplir le formulaire', 'Retour au menu']
-                };
+                botResponse = correctionNomResponse();
             }
             break;
-        case 'GUIDE_CORRECTION_NOM':
-            if (lowerMessage === 'remplir le formulaire') {
-                botResponse = {
-                    role: 'bot',
-                    content: "Très bien, je vous redirige vers le formulaire de demande de correction de nom.",
-                    redirectUrl: '/etudiant/requetes/nouvelle?type=correction_nom',
-                    quickReplies: ['Retour au menu']
-                };
+        case 'CONTESTATION_NOTE':
+            if (matchRemplirFormulaire(lowerMessage)) {
+                session.state = 'REDIRECT_NOTE';
+                botResponse = redirectNoteResponse();
             }
             else {
-                botResponse = {
-                    role: 'bot',
-                    content: "Avez-vous d'autres questions ou souhaitez-vous accéder au formulaire ?",
-                    quickReplies: ['Remplir le formulaire', 'Retour au menu']
-                };
+                botResponse = contestationNoteResponse();
             }
             break;
-        case 'GUIDE_CONTESTATION_NOTE':
-            if (lowerMessage === 'remplir le formulaire') {
-                botResponse = {
-                    role: 'bot',
-                    content: "Très bien, je vous redirige vers le formulaire de demande de contestation de note.",
-                    redirectUrl: '/etudiant/requetes/nouvelle?type=contestation_note',
-                    quickReplies: ['Retour au menu']
-                };
+        case 'AIDE':
+            if (matchEffetAcademique(lowerMessage)) {
+                session.state = 'EFFET_ACADEMIQUE';
+                botResponse = effetAcademiqueResponse();
+            }
+            else if (matchCorrectionNom(lowerMessage)) {
+                session.state = 'CORRECTION_NOM';
+                botResponse = correctionNomResponse();
+            }
+            else if (matchContestationNote(lowerMessage)) {
+                session.state = 'CONTESTATION_NOTE';
+                botResponse = contestationNoteResponse();
             }
             else {
-                botResponse = {
-                    role: 'bot',
-                    content: "Avez-vous d'autres questions ou souhaitez-vous accéder au formulaire ?",
-                    quickReplies: ['Remplir le formulaire', 'Retour au menu']
-                };
+                botResponse = aideResponse();
             }
             break;
+        case 'REDIRECT_EFFET':
+        case 'REDIRECT_NOM':
+        case 'REDIRECT_NOTE':
         default:
-            botResponse = {
-                role: 'bot',
-                content: "Je suis désolé, je suis un peu perdu. Recommençons.",
-                quickReplies: ['Menu']
-            };
-            session.state = 'IDENTIFY_NEED';
+            // Après une redirection (ou état inconnu), tout nouveau message ramène à l'accueil.
+            session.state = 'ACCUEIL';
+            botResponse = accueilResponse();
             break;
     }
     // Add bot response to history
@@ -167,78 +199,3 @@ const processMessage = async (sessionId, message, userId) => {
     return botResponse;
 };
 exports.processMessage = processMessage;
-async function answerFaqOrGroq(query) {
-    const faqResponse = searchFAQ(query);
-    if (faqResponse.content.startsWith('Voici ce que j\'ai trouvé')) {
-        return faqResponse;
-    }
-    if ((0, groq_service_1.isGroqEnabled)()) {
-        try {
-            const groqAnswer = await (0, groq_service_1.queryGroqAI)(query);
-            return {
-                role: 'bot',
-                content: groqAnswer
-            };
-        }
-        catch (error) {
-            console.error('Groq AI error:', error);
-            return {
-                role: 'bot',
-                content: "Je n'ai pas trouvé de réponse dans ma base de connaissances et le service AI est momentanément indisponible. Essayez de reformuler ou contactez le secrétariat de l'IUT."
-            };
-        }
-    }
-    return {
-        role: 'bot',
-        content: "Je n'ai pas trouvé de réponse exacte à votre question dans ma base de connaissances. Essayez de reformuler ou contactez le secrétariat de l'IUT pour plus d'informations."
-    };
-}
-// Helpers for Guides
-function getGuideEffetAcademique() {
-    return {
-        role: 'bot',
-        content: "Une requête d'Effet académique permet de justifier une absence à un cours ou examen. Vous aurez besoin de fournir un justificatif (ex: certificat médical) dans un délai de 48h. Souhaitez-vous remplir le formulaire maintenant ?",
-        quickReplies: ['Remplir le formulaire', 'Retour au menu']
-    };
-}
-function getGuideCorrectionNom() {
-    return {
-        role: 'bot',
-        content: "Une requête de Correction de nom permet de modifier une erreur d'orthographe sur vos documents scolaires. Vous devrez fournir une pièce d'identité valide (carte d'identité, passeport). Souhaitez-vous remplir le formulaire maintenant ?",
-        quickReplies: ['Remplir le formulaire', 'Retour au menu']
-    };
-}
-function getGuideContestationNote() {
-    return {
-        role: 'bot',
-        content: "Avant de soumettre une Contestation de note, assurez-vous d'avoir d'abord discuté avec votre professeur. Si le désaccord persiste, vous pouvez soumettre une requête officielle. Souhaitez-vous remplir le formulaire maintenant ?",
-        quickReplies: ['Remplir le formulaire', 'Retour au menu']
-    };
-}
-function searchFAQ(query) {
-    // Simple scoring based on keywords
-    let bestMatch = null;
-    let highestScore = 0;
-    for (const item of faq_json_1.default) {
-        let score = 0;
-        for (const kw of item.keywords) {
-            if (query.toLowerCase().includes(kw.toLowerCase())) {
-                score++;
-            }
-        }
-        if (score > highestScore) {
-            highestScore = score;
-            bestMatch = item;
-        }
-    }
-    if (bestMatch && highestScore > 0) {
-        return {
-            role: 'bot',
-            content: `Voici ce que j'ai trouvé : ${bestMatch.answer}`
-        };
-    }
-    return {
-        role: 'bot',
-        content: "Je n'ai pas trouvé de réponse exacte à votre question dans ma base de connaissances. Essayez de reformuler ou contactez le secrétariat de l'IUT pour plus d'informations."
-    };
-}

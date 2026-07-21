@@ -14,8 +14,8 @@ const STAFF_ROLES = ['secretariat', 'directeur', 'directeur_adjoint', 'departeme
 router.get('/staff/all', authMiddleware_1.default, (0, roleMiddleware_1.default)(STAFF_ROLES), requeteController_1.getRequetesStaff);
 router.get('/staff/stats', authMiddleware_1.default, (0, roleMiddleware_1.default)(STAFF_ROLES), requeteController_1.getStats);
 // Staff Workflow Transition Routes
-router.put('/staff/:id/receptionner', authMiddleware_1.default, (0, roleMiddleware_1.default)(['secretariat', 'departement']), requeteController_1.receptionnerRequete);
-router.put('/staff/:id/acheminer', authMiddleware_1.default, (0, roleMiddleware_1.default)(['secretariat', 'departement']), requeteController_1.acheminerRequete);
+router.put('/staff/:id/receptionner', authMiddleware_1.default, (0, roleMiddleware_1.default)(['departement']), requeteController_1.receptionnerRequete);
+router.put('/staff/:id/valider-et-acheminer', authMiddleware_1.default, (0, roleMiddleware_1.default)(['secretariat']), requeteController_1.validerEtAcheminer);
 router.put('/staff/:id/valider', authMiddleware_1.default, (0, roleMiddleware_1.default)(['directeur', 'directeur_adjoint', 'departement']), requeteController_1.validerRequete);
 router.put('/staff/:id/rejeter', authMiddleware_1.default, (0, roleMiddleware_1.default)(['directeur', 'directeur_adjoint', 'departement']), requeteController_1.rejeterRequete);
 router.put('/staff/:id/demander-info', authMiddleware_1.default, (0, roleMiddleware_1.default)(STAFF_ROLES), requeteController_1.demanderInfoRequete);

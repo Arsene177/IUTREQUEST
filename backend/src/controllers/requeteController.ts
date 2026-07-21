@@ -1,7 +1,7 @@
 import { Response } from 'express';
 import pool from '../config/db';
 import { AuthRequest } from '../middlewares/authMiddleware';
-import { notifyRole, notifyUser } from '../services/notificationService';
+import { notifyRole, notifyUser, NotificationAgent } from '../services/notificationService';
 import {
   buildStaffRoleFilter,
   canAccessRequete,
@@ -10,6 +10,12 @@ import {
 } from '../utils/requeteAccess';
 
 const TYPES_VALIDES = ['effet_academique', 'correction_nom', 'contestation_note'];
+
+/** Récupère l'identité de l'agent (staff) à l'origine d'une action, pour les notifications. */
+async function getAgentInfo(userId: number): Promise<NotificationAgent | undefined> {
+  const [rows]: any = await pool.execute('SELECT nom, prenom, role FROM users WHERE id = ?', [userId]);
+  return rows[0];
+}
 
 async function fetchRequeteDetails(requeteId: string | number) {
   const [requetes]: any = await pool.execute('SELECT * FROM requete WHERE id = ?', [requeteId]);
@@ -276,7 +282,10 @@ export const completerInfoRequete = async (req: AuthRequest, res: Response): Pro
       return;
     }
 
-    await pool.execute('UPDATE requete SET statut = ? WHERE id = ?', ['EN_COURS', id]);
+    await pool.execute(
+      'UPDATE requete SET statut = ?, service_cible = ? WHERE id = ?',
+      ['EN_COURS', 'secretariat', id]
+    );
 
     await pool.execute(
       'INSERT INTO historique_statut (requete_id, ancien_statut, nouveau_statut, change_par, commentaire) VALUES (?, ?, ?, ?, ?)',
@@ -289,9 +298,8 @@ export const completerInfoRequete = async (req: AuthRequest, res: Response): Pro
       ]
     );
 
-    const targetRole = requete.service_cible || 'secretariat';
     await notifyRole(
-      targetRole,
+      'secretariat',
       Number(id),
       `L'étudiant a complété le dossier #${id}`
     );
@@ -374,36 +382,136 @@ export const getRequetesStaff = async (req: AuthRequest, res: Response): Promise
   }
 };
 
+async function countRequetes(sql: string, params: any[] = []): Promise<number> {
+  const [rows]: any = await pool.execute(sql, params);
+  const result = Number(rows[0]?.count ?? 0);
+  console.log('[countRequetes]', sql, '→', result);
+  return result;
+}
+
+/**
+ * KPI staff : Total / En attente / En cours / Clôturées, calculés selon une
+ * règle propre à chaque rôle (les compteurs ne sont pas forcément une
+ * partition exclusive du Total — chaque valeur est une requête indépendante).
+ */
+async function computeStaffKpis(
+  role: string
+): Promise<{ total: number; enAttente: number; enCours: number; cloturees: number }> {
+  switch (role) {
+    case 'secretariat': {
+      const total = await countRequetes('SELECT COUNT(*) as count FROM requete');
+      const enAttente = await countRequetes("SELECT COUNT(*) as count FROM requete WHERE statut = 'EN_ATTENTE'");
+      const enCours = await countRequetes("SELECT COUNT(*) as count FROM requete WHERE statut IN ('EN_COURS', 'ATTENTE_INFO')");
+      const cloturees = await countRequetes('SELECT COUNT(*) as count FROM requete WHERE service_cible IS NOT NULL');
+      console.log('[computeStaffKpis secretariat] total:', total, 'enAttente:', enAttente, 'enCours:', enCours, 'cloturees:', cloturees);
+      return { total, enAttente, enCours, cloturees };
+    }
+    case 'directeur_adjoint':
+    case 'directeur': {
+      const [total, enAttente, enCours, cloturees] = await Promise.all([
+        countRequetes('SELECT COUNT(*) as count FROM requete WHERE service_cible = ?', [role]),
+        countRequetes(
+          "SELECT COUNT(*) as count FROM requete WHERE statut = 'EN_COURS' AND service_cible = ?",
+          [role]
+        ),
+        countRequetes(
+          "SELECT COUNT(*) as count FROM requete WHERE statut = 'ATTENTE_INFO' AND service_cible = ?",
+          [role]
+        ),
+        countRequetes(
+          "SELECT COUNT(*) as count FROM requete WHERE statut IN ('VALIDEE', 'CLOTUREE') AND service_cible = ?",
+          [role]
+        ),
+      ]);
+      return { total, enAttente, enCours, cloturees };
+    }
+    case 'departement': {
+      const [total, enAttente, enCours, cloturees] = await Promise.all([
+        countRequetes("SELECT COUNT(*) as count FROM requete WHERE type = 'contestation_note'"),
+        countRequetes(
+          "SELECT COUNT(*) as count FROM requete WHERE statut = 'EN_COURS' AND service_cible = 'departement'"
+        ),
+        countRequetes(
+          "SELECT COUNT(*) as count FROM requete WHERE statut = 'ATTENTE_INFO' AND service_cible = 'departement'"
+        ),
+        countRequetes(
+          "SELECT COUNT(*) as count FROM requete WHERE statut IN ('VALIDEE', 'EN_EXECUTION', 'CLOTUREE') AND type = 'contestation_note'"
+        ),
+      ]);
+      return { total, enAttente, enCours, cloturees };
+    }
+    case 'cellule_informatique': {
+      const [total, enAttente, enCours, cloturees] = await Promise.all([
+        countRequetes("SELECT COUNT(*) as count FROM requete WHERE statut IN ('VALIDEE', 'EN_EXECUTION', 'CLOTUREE')"),
+        countRequetes("SELECT COUNT(*) as count FROM requete WHERE statut = 'VALIDEE'"),
+        countRequetes("SELECT COUNT(*) as count FROM requete WHERE statut = 'EN_EXECUTION'"),
+        countRequetes("SELECT COUNT(*) as count FROM requete WHERE statut = 'CLOTUREE'"),
+      ]);
+      return { total, enAttente, enCours, cloturees };
+    }
+    case 'scolarite': {
+      const [total, enAttente, cloturees] = await Promise.all([
+        countRequetes("SELECT COUNT(*) as count FROM requete WHERE statut IN ('EN_EXECUTION', 'CLOTUREE')"),
+        countRequetes("SELECT COUNT(*) as count FROM requete WHERE statut = 'EN_EXECUTION'"),
+        countRequetes("SELECT COUNT(*) as count FROM requete WHERE statut = 'CLOTUREE'"),
+      ]);
+      return { total, enAttente, enCours: 0, cloturees };
+    }
+    default:
+      return { total: 0, enAttente: 0, enCours: 0, cloturees: 0 };
+  }
+}
+
 // GET /requetes/staff/stats
 export const getStats = async (req: AuthRequest, res: Response): Promise<void> => {
+  const { from, to } = req.query;
+  const role = req.user!.role;
+
   try {
-    const roleFilter = buildStaffRoleFilter(req.user!.role);
+    const roleFilter = buildStaffRoleFilter(role);
     const whereRole = roleFilter.clause.replace(/^ AND /, 'WHERE ');
 
-    const [statsByStatus]: any = await pool.execute(
-      `SELECT r.statut, COUNT(*) as count FROM requete r ${whereRole} GROUP BY r.statut`,
-      roleFilter.params as any[]
-    );
+    const kpi = await computeStaffKpis(role);
+
     const [statsByType]: any = await pool.execute(
       `SELECT r.type, COUNT(*) as count FROM requete r ${whereRole} GROUP BY r.type`,
       roleFilter.params as any[]
     );
 
-    const [evolution]: any = await pool.execute(
-      `SELECT YEARWEEK(r.date_depot, 1) as week, COUNT(*) as total
-       FROM requete r
-       ${whereRole ? whereRole + ' AND' : 'WHERE'} r.date_depot >= DATE_SUB(NOW(), INTERVAL 4 WEEK)
-       GROUP BY week
-       ORDER BY week ASC`,
-      roleFilter.params as any[]
-    );
+    let evolution: any;
+
+    if (from && to) {
+      [evolution] = await pool.execute(
+        `SELECT DATE(r.date_depot) as day, COUNT(*) as total
+         FROM requete r
+         ${whereRole ? whereRole + ' AND' : 'WHERE'} r.date_depot >= ? AND r.date_depot <= ?
+         GROUP BY day
+         ORDER BY day ASC`,
+        [...roleFilter.params, `${from} 00:00:00`, `${to} 23:59:59`] as any[]
+      );
+    } else {
+      [evolution] = await pool.execute(
+        `SELECT YEARWEEK(r.date_depot, 1) as week, COUNT(*) as total
+         FROM requete r
+         ${whereRole ? whereRole + ' AND' : 'WHERE'} r.date_depot >= DATE_SUB(NOW(), INTERVAL 4 WEEK)
+         GROUP BY week
+         ORDER BY week ASC`,
+        roleFilter.params as any[]
+      );
+    }
 
     res.status(200).json({
-      byStatus: statsByStatus,
+      total: kpi.total,
+      byStatus: [
+        { statut: 'EN_ATTENTE', count: kpi.enAttente },
+        { statut: 'EN_COURS', count: kpi.enCours },
+        { statut: 'CLOTUREE', count: kpi.cloturees },
+      ],
       byType: statsByType,
       evolution,
     });
   } catch (error) {
+    console.error('[getStats] Erreur lors du calcul des statistiques staff :', error);
     res.status(500).json({ message: 'Erreur serveur', error });
   }
 };
@@ -419,7 +527,9 @@ async function applyTransition(
     newStatus: string;
     commentaire: string;
     studentMessage: string;
-    notifyRoles?: string[];
+    studentMessageExtra?: string;
+    notifyRoles?: string[] | ((requete: any) => string[]);
+    resolveServiceCible?: (requete: any) => string | undefined;
   }
 ): Promise<void> {
   const { id } = req.params;
@@ -439,33 +549,65 @@ async function applyTransition(
       return;
     }
 
-    await pool.execute('UPDATE requete SET statut = ? WHERE id = ?', [opts.newStatus, id]);
+    const newServiceCible = opts.resolveServiceCible?.(requete);
+
+    if (newServiceCible) {
+      await pool.execute(
+        'UPDATE requete SET statut = ?, service_cible = ? WHERE id = ?',
+        [opts.newStatus, newServiceCible, id]
+      );
+    } else {
+      await pool.execute('UPDATE requete SET statut = ? WHERE id = ?', [opts.newStatus, id]);
+    }
 
     await pool.execute(
       'INSERT INTO historique_statut (requete_id, ancien_statut, nouveau_statut, change_par, commentaire) VALUES (?, ?, ?, ?, ?)',
       [id, requete.statut, opts.newStatus, req.user!.id, opts.commentaire]
     );
 
+    const agent = await getAgentInfo(req.user!.id);
+
     const [etudiant]: any = await pool.execute(
       'SELECT user_id FROM etudiant WHERE id = ?',
       [requete.etudiant_id]
     );
     if (etudiant.length > 0) {
-      await notifyUser(etudiant[0].user_id, Number(id), opts.studentMessage);
+      await notifyUser(
+        etudiant[0].user_id,
+        Number(id),
+        opts.studentMessage,
+        agent,
+        opts.studentMessageExtra
+      );
     }
 
-    if (opts.notifyRoles) {
-      for (const role of opts.notifyRoles) {
+    const notifyRoles =
+      typeof opts.notifyRoles === 'function' ? opts.notifyRoles(requete) : opts.notifyRoles;
+
+    if (notifyRoles) {
+      for (const role of notifyRoles) {
         await notifyRole(role, Number(id), `Requête #${id} : ${opts.commentaire}`);
       }
     }
 
     res.status(200).json({ message: `Requête ${opts.actionName} avec succès` });
   } catch (error) {
+    console.error(`[applyTransition:${opts.actionName}] Erreur :`, error);
     res.status(500).json({ message: 'Erreur serveur', error });
   }
 }
 
+// Acheminement automatique et unique selon le type de requête — le secrétariat
+// n'a aucun choix à faire, il n'y a pas de bouton "Acheminer".
+function resolveAutoServiceCible(type: string): string {
+  if (type === 'correction_nom') return 'directeur';
+  if (type === 'effet_academique') return 'directeur_adjoint';
+  return 'departement'; // contestation_note
+}
+
+// Réception simple (EN_ATTENTE -> EN_COURS), sans acheminement — utilisée par le
+// département pour prendre en charge une contestation de note (dont le
+// service_cible est déjà 'departement' depuis sa création).
 export const receptionnerRequete = async (req: AuthRequest, res: Response): Promise<void> => {
   const { id } = req.params;
   const role = req.user!.role;
@@ -495,53 +637,28 @@ export const receptionnerRequete = async (req: AuthRequest, res: Response): Prom
       [id, 'EN_ATTENTE', 'EN_COURS', req.user!.id, 'Dossier réceptionné']
     );
 
+    const agent = await getAgentInfo(req.user!.id);
+
     const [etudiant]: any = await pool.execute(
       'SELECT user_id FROM etudiant WHERE id = ?',
       [requete.etudiant_id]
     );
     if (etudiant.length > 0) {
-      await notifyUser(
-        etudiant[0].user_id,
-        Number(id),
-        'Votre requête a été réceptionnée et est en cours de traitement.'
-      );
-    }
-
-    const nextRole =
-      requete.type === 'effet_academique'
-        ? 'directeur_adjoint'
-        : requete.type === 'correction_nom'
-          ? 'directeur'
-          : 'departement';
-
-    if (role !== nextRole) {
-      await notifyRole(nextRole, Number(id), `Requête #${id} réceptionnée — traitement requis.`);
+      await notifyUser(etudiant[0].user_id, Number(id), `Votre requête #${id} a été réceptionnée`, agent);
     }
 
     res.status(200).json({ message: 'Requête réceptionnée avec succès' });
   } catch (error) {
+    console.error('[receptionnerRequete] Erreur :', error);
     res.status(500).json({ message: 'Erreur serveur', error });
   }
 };
 
-export const acheminerRequete = async (req: AuthRequest, res: Response): Promise<void> => {
+// Action dédiée au secrétariat : valide la réception (depuis EN_ATTENTE ou EN_COURS)
+// ET achemine automatiquement selon le type, en une seule action ("Valider et acheminer").
+export const validerEtAcheminer = async (req: AuthRequest, res: Response): Promise<void> => {
   const { id } = req.params;
-  const { service_cible } = req.body;
-  const validCibles = [
-    'directeur_adjoint',
-    'directeur',
-    'departement',
-    'scolarite',
-    'cellule_informatique',
-  ];
-
-  if (!service_cible || !validCibles.includes(service_cible)) {
-    res.status(400).json({
-      message:
-        'service_cible requis : directeur_adjoint, directeur, departement, scolarite, cellule_informatique',
-    });
-    return;
-  }
+  console.log('[validerEtAcheminer] requete id:', id, 'user:', req.user?.id, 'role:', req.user?.role);
 
   try {
     const [requetes]: any = await pool.execute('SELECT * FROM requete WHERE id = ?', [id]);
@@ -551,26 +668,26 @@ export const acheminerRequete = async (req: AuthRequest, res: Response): Promise
     }
 
     const requete = requetes[0];
-    if (requete.statut !== 'EN_COURS') {
-      res.status(400).json({ message: 'Acheminement possible uniquement depuis EN_COURS' });
+    if (!['EN_ATTENTE', 'EN_COURS'].includes(requete.statut)) {
+      res.status(400).json({
+        message: "Validation et acheminement possibles uniquement depuis EN_ATTENTE ou EN_COURS",
+      });
       return;
     }
 
+    const serviceCible = resolveAutoServiceCible(requete.type);
+
     await pool.execute(
       'UPDATE requete SET statut = ?, service_cible = ? WHERE id = ?',
-      ['EN_COURS', service_cible, id]
+      ['EN_COURS', serviceCible, id]
     );
 
     await pool.execute(
       'INSERT INTO historique_statut (requete_id, ancien_statut, nouveau_statut, change_par, commentaire) VALUES (?, ?, ?, ?, ?)',
-      [
-        id,
-        'EN_COURS',
-        'EN_COURS',
-        req.user!.id,
-        `Dossier acheminé vers ${service_cible}`,
-      ]
+      [id, requete.statut, 'EN_COURS', req.user!.id, `Dossier validé et acheminé vers ${serviceCible}`]
     );
+
+    const agent = await getAgentInfo(req.user!.id);
 
     const [etudiant]: any = await pool.execute(
       'SELECT user_id FROM etudiant WHERE id = ?',
@@ -580,36 +697,43 @@ export const acheminerRequete = async (req: AuthRequest, res: Response): Promise
       await notifyUser(
         etudiant[0].user_id,
         Number(id),
-        'Votre requête a été acheminée pour traitement.'
+        `Votre requête #${id} a été réceptionnée et acheminée`,
+        agent
       );
     }
 
-    await notifyRole(
-      service_cible,
-      Number(id),
-      `Requête #${id} acheminée vers votre service`
-    );
+    await notifyRole(serviceCible, Number(id), `Requête #${id} acheminée vers votre service — traitement requis.`);
 
-    res.status(200).json({ message: 'Requête acheminée avec succès' });
+    res.status(200).json({ message: 'Requête validée et acheminée avec succès' });
   } catch (error) {
+    console.error('[validerEtAcheminer] Erreur :', error);
     res.status(500).json({ message: 'Erreur serveur', error });
   }
 };
 
 export const validerRequete = (req: AuthRequest, res: Response) => {
   const { commentaire } = req.body;
+  const { id } = req.params;
   return applyTransition(req, res, {
     actionName: 'validée',
     expectedStatus: ['EN_COURS', 'ATTENTE_INFO'],
     newStatus: 'VALIDEE',
     commentaire: commentaire || 'Dossier validé',
-    studentMessage: 'Votre requête a été validée.',
-    notifyRoles: ['scolarite', 'cellule_informatique'],
+    studentMessage: `Votre requête #${id} a été validée`,
+    // Une contestation de note validée par le département va directement à la
+    // cellule informatique, sans passer par directeur_adjoint ni directeur.
+    resolveServiceCible: (requete) =>
+      requete.type === 'contestation_note' ? 'cellule_informatique' : undefined,
+    notifyRoles: (requete) =>
+      requete.type === 'contestation_note'
+        ? ['cellule_informatique']
+        : ['scolarite', 'cellule_informatique'],
   });
 };
 
 export const rejeterRequete = (req: AuthRequest, res: Response) => {
   const { motif } = req.body;
+  const { id } = req.params;
   if (!motif || String(motif).trim().length < 5) {
     res.status(400).json({ message: 'Le motif du rejet est requis (min. 5 caractères)' });
     return;
@@ -619,41 +743,47 @@ export const rejeterRequete = (req: AuthRequest, res: Response) => {
     expectedStatus: ['EN_COURS', 'ATTENTE_INFO'],
     newStatus: 'REJETEE',
     commentaire: `Rejet : ${motif}`,
-    studentMessage: `Votre requête a été rejetée : ${motif}`,
+    studentMessage: `Votre requête #${id} a été rejetée`,
+    studentMessageExtra: `. Motif : ${motif}.`,
   });
 };
 
 export const demanderInfoRequete = (req: AuthRequest, res: Response) => {
   const { info_requise } = req.body;
+  const { id } = req.params;
   if (!info_requise || String(info_requise).trim().length < 5) {
     res.status(400).json({ message: 'info_requise est requise (min. 5 caractères)' });
     return;
   }
   return applyTransition(req, res, {
     actionName: 'demande info',
-    expectedStatus: ['EN_COURS'],
+    expectedStatus: ['EN_ATTENTE', 'EN_COURS'],
     newStatus: 'ATTENTE_INFO',
     commentaire: `Information requise : ${info_requise}`,
-    studentMessage: `Des informations sont requises : ${info_requise}`,
+    studentMessage: `Des informations complémentaires sont requises pour votre requête #${id}. Demande faite`,
+    studentMessageExtra: ` : ${info_requise}`,
   });
 };
 
-export const executerRequete = (req: AuthRequest, res: Response) =>
-  applyTransition(req, res, {
+export const executerRequete = (req: AuthRequest, res: Response) => {
+  const { id } = req.params;
+  return applyTransition(req, res, {
     actionName: 'en exécution',
     expectedStatus: ['VALIDEE'],
     newStatus: 'EN_EXECUTION',
     commentaire: 'En cours d\'exécution',
-    studentMessage: 'Votre requête est en cours d\'exécution.',
+    studentMessage: `Votre requête #${id} est passée en exécution`,
   });
+};
 
 export const cloturerRequete = (req: AuthRequest, res: Response) => {
   const { commentaire_final } = req.body;
+  const { id } = req.params;
   return applyTransition(req, res, {
     actionName: 'clôturée',
     expectedStatus: ['EN_EXECUTION', 'VALIDEE', 'REJETEE'],
     newStatus: 'CLOTUREE',
     commentaire: commentaire_final || 'Dossier clôturé',
-    studentMessage: 'Votre requête a été clôturée.',
+    studentMessage: `Votre requête #${id} a été clôturée`,
   });
 };

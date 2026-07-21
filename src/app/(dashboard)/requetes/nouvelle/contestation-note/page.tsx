@@ -15,11 +15,16 @@ export default function ContestationNotePage() {
     register,
     control,
     handleSubmit,
+    watch,
     formState: { errors },
   } = useForm<ContestationNoteFormValues>({
     resolver: zodResolver(contestationNoteSchema),
     defaultValues: { priorite: "normale" },
   });
+
+  const documentFicheRequete = watch("document_fiche_requete");
+  const documentFeuilleNote = watch("document_feuille_note");
+  const tousDocumentsFournis = !!documentFicheRequete && !!documentFeuilleNote;
 
   const onSubmit = (values: ContestationNoteFormValues) => {
     const validated = values as unknown as ContestationNoteFormOutput;
@@ -31,7 +36,7 @@ export default function ContestationNotePage() {
       note_contestee: validated.note_contestee,
       motif_contestation: validated.motif_contestation,
     };
-    submit(payload, validated.justificatif);
+    submit(payload, [validated.document_fiche_requete, validated.document_feuille_note]);
   };
 
   return (
@@ -42,6 +47,7 @@ export default function ContestationNotePage() {
         description="Demande de révision d'une note attribuée par l'enseignant"
         onSubmit={handleSubmit(onSubmit)}
         isSubmitting={isSubmitting}
+        submitDisabled={!tousDocumentsFournis}
       >
         <TextField
           label="Matière concernée"
@@ -80,15 +86,32 @@ export default function ContestationNotePage() {
           {...register("motif_contestation")}
         />
 
+        <p className="text-sm font-bold text-[var(--color-ink)]">
+          Documents obligatoires (2 fichiers requis)
+        </p>
+
         <Controller
           control={control}
-          name="justificatif"
+          name="document_fiche_requete"
           render={({ field }) => (
             <FileDropzone
-              label="Justificatif (copie corrigée)"
+              label="Fiche de requête"
               value={field.value ?? null}
               onChange={field.onChange}
-              error={errors.justificatif?.message}
+              error={errors.document_fiche_requete?.message}
+            />
+          )}
+        />
+
+        <Controller
+          control={control}
+          name="document_feuille_note"
+          render={({ field }) => (
+            <FileDropzone
+              label="Feuille de note"
+              value={field.value ?? null}
+              onChange={field.onChange}
+              error={errors.document_feuille_note?.message}
             />
           )}
         />

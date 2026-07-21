@@ -56,4 +56,19 @@ export const documentsApi = {
   downloadUrl(requeteId: number, docId: number): string {
     return `${apiClient.defaults.baseURL}/requetes/${requeteId}/documents/${docId}`;
   },
+
+  /** Télécharge un document protégé par JWT (l'endpoint exige le header Authorization). */
+  async download(requeteId: number, docId: number, nomFichier: string): Promise<void> {
+    const response = await apiClient.get(`/requetes/${requeteId}/documents/${docId}`, {
+      responseType: "blob",
+    });
+    const url = window.URL.createObjectURL(new Blob([response.data]));
+    const link = document.createElement("a");
+    link.href = url;
+    link.setAttribute("download", nomFichier);
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    window.URL.revokeObjectURL(url);
+  },
 };

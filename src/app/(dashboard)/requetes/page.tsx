@@ -46,19 +46,19 @@ export default function RequetesPage() {
         ) : (
           <>
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-              <div className="rounded-2xl border border-[var(--color-cream-line)] bg-white p-4">
+              <div className="rounded-2xl border border-[var(--color-cream-line)] bg-[var(--color-cream)] p-4">
                 <p className="text-sm text-[var(--color-ink-muted)]">Total</p>
                 <p className="mt-2 text-2xl font-extrabold text-[var(--color-ink)]">{stats.total}</p>
               </div>
-              <div className="rounded-2xl border border-[var(--color-cream-line)] bg-white p-4">
+              <div className="rounded-2xl border border-[var(--color-cream-line)] bg-[var(--color-cream)] p-4">
                 <p className="text-sm text-[var(--color-ink-muted)]">En attente</p>
-                <p className="mt-2 text-2xl font-extrabold text-[var(--color-amber)]">{stats.enAttente}</p>
+                <p className="mt-2 text-2xl font-extrabold text-[var(--color-status-attente)]">{stats.enAttente}</p>
               </div>
-              <div className="rounded-2xl border border-[var(--color-cream-line)] bg-white p-4">
+              <div className="rounded-2xl border border-[var(--color-cream-line)] bg-[var(--color-cream)] p-4">
                 <p className="text-sm text-[var(--color-ink-muted)]">En cours</p>
                 <p className="mt-2 text-2xl font-extrabold text-[var(--color-brand)]">{stats.enCours}</p>
               </div>
-              <div className="rounded-2xl border border-[var(--color-cream-line)] bg-white p-4">
+              <div className="rounded-2xl border border-[var(--color-cream-line)] bg-[var(--color-cream)] p-4">
                 <p className="text-sm text-[var(--color-ink-muted)]">Traitées</p>
                 <p className="mt-2 text-2xl font-extrabold text-[var(--color-success)]">{stats.resolues + stats.rejetees}</p>
               </div>

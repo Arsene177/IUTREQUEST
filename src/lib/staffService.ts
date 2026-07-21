@@ -1,9 +1,20 @@
 import api from './axios';
 
 export interface StaffStats {
+  // Total calculé selon la règle propre à chaque rôle (peut différer de la somme de byStatus).
+  total: number;
   byStatus: { statut: string; count: number }[];
   byType: { type: string; count: number }[];
-  evolution: { week: string; total: number }[];
+  // `week` quand aucune période n'est précisée (4 dernières semaines), `day` quand from/to sont fournis.
+  evolution: { week?: string; day?: string; total: number }[];
+}
+
+export interface DocumentItem {
+  id: number;
+  nom: string;
+  type: string;
+  taille: number;
+  uploaded_at: string;
 }
 
 export interface RequeteListItem {
@@ -28,8 +39,12 @@ export interface StaffRequetesResponse {
   };
 }
 
-export const fetchStaffStats = async (): Promise<StaffStats> => {
-  const response = await api.get('/requetes/staff/stats');
+export const fetchStaffStats = async (from?: string, to?: string): Promise<StaffStats> => {
+  const params = new URLSearchParams();
+  if (from) params.append('from', from);
+  if (to) params.append('to', to);
+  const qs = params.toString();
+  const response = await api.get(`/requetes/staff/stats${qs ? `?${qs}` : ''}`);
   return response.data;
 };
 
@@ -61,4 +76,23 @@ export const transitionRequete = async (
 ): Promise<{ message: string }> => {
   const response = await api.put(`/requetes/staff/${id}/${action}`, body ?? {});
   return response.data;
+};
+
+/** Télécharge un document protégé par JWT (l'endpoint exige le header Authorization). */
+export const downloadDocument = async (
+  requeteId: string | number,
+  docId: number,
+  nomFichier: string
+): Promise<void> => {
+  const response = await api.get(`/requetes/${requeteId}/documents/${docId}`, {
+    responseType: 'blob',
+  });
+  const url = window.URL.createObjectURL(new Blob([response.data]));
+  const link = document.createElement('a');
+  link.href = url;
+  link.setAttribute('download', nomFichier);
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  window.URL.revokeObjectURL(url);
 };

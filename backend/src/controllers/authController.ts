@@ -108,13 +108,27 @@ export const getMe = async (req: AuthRequest, res: Response): Promise<void> => {
       return;
     }
 
+    const user = rows[0];
+
+    if (user.role === 'etudiant') {
+      const [etudiantRows]: any = await pool.execute(
+        'SELECT matricule, filiere, niveau FROM etudiant WHERE user_id = ?',
+        [req.user!.id]
+      );
+      if (etudiantRows.length > 0) {
+        user.matricule = etudiantRows[0].matricule;
+        user.filiere = etudiantRows[0].filiere;
+        user.niveau = etudiantRows[0].niveau;
+      }
+    }
+
     const [notifs]: any = await pool.execute(
       'SELECT COUNT(*) as nb FROM notification WHERE user_id = ? AND lu = FALSE',
       [req.user!.id]
     );
 
     res.status(200).json({
-      user: rows[0],
+      user,
       notifications_non_lues: notifs[0].nb,
     });
   } catch (error) {

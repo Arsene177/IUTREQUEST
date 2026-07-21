@@ -15,11 +15,16 @@ export default function CorrectionNomPage() {
     register,
     control,
     handleSubmit,
+    watch,
     formState: { errors },
   } = useForm<CorrectionNomFormValues>({
     resolver: zodResolver(correctionNomSchema),
     defaultValues: { priorite: "normale" },
   });
+
+  const documentQuitus = watch("document_quitus");
+  const documentLettreDirecteur = watch("document_lettre_directeur");
+  const tousDocumentsFournis = !!documentQuitus && !!documentLettreDirecteur;
 
   const onSubmit = (values: CorrectionNomFormValues) => {
     const payload: PayloadCorrectionNom = {
@@ -29,7 +34,7 @@ export default function CorrectionNomPage() {
       nouveau_nom: values.nouveau_nom,
       motif: values.motif,
     };
-    submit(payload, values.justificatif);
+    submit(payload, [values.document_quitus, values.document_lettre_directeur]);
   };
 
   return (
@@ -40,6 +45,7 @@ export default function CorrectionNomPage() {
         description="Modification de l'état civil dans les registres de l'IUT"
         onSubmit={handleSubmit(onSubmit)}
         isSubmitting={isSubmitting}
+        submitDisabled={!tousDocumentsFournis}
       >
         <TextField
           label="Nom actuel (incorrect)"
@@ -62,15 +68,32 @@ export default function CorrectionNomPage() {
           {...register("motif")}
         />
 
+        <p className="text-sm font-bold text-[var(--color-ink)]">
+          Documents obligatoires (2 fichiers requis)
+        </p>
+
         <Controller
           control={control}
-          name="justificatif"
+          name="document_quitus"
           render={({ field }) => (
             <FileDropzone
-              label="Justificatif (CNI, acte de naissance)"
+              label="Quitus"
               value={field.value ?? null}
               onChange={field.onChange}
-              error={errors.justificatif?.message}
+              error={errors.document_quitus?.message}
+            />
+          )}
+        />
+
+        <Controller
+          control={control}
+          name="document_lettre_directeur"
+          render={({ field }) => (
+            <FileDropzone
+              label="Lettre au directeur"
+              value={field.value ?? null}
+              onChange={field.onChange}
+              error={errors.document_lettre_directeur?.message}
             />
           )}
         />
