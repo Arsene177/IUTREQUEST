@@ -14,6 +14,7 @@ export type StatutRequete =
   | "VALIDEE"
   | "EN_EXECUTION"
   | "REJETEE"
+  | "ANNULEE"
   | "CLOTUREE";
 
 export type TypeRequete = "effet_academique" | "correction_nom" | "contestation_note";
@@ -28,10 +29,16 @@ export interface User {
 
 export interface Requete {
   id: number;
+  /** Numéro d'ordre propre à l'étudiant (1ère, 2e... requête) — à afficher côté étudiant à la place de `id`. */
+  numero?: number;
   type: TypeRequete;
   statut: StatutRequete;
   priorite: "normale" | "urgente";
   date_depot: string;
+  /** Nombre de jours écoulés depuis le dépôt (calculé côté serveur). */
+  jours_ecoules?: number;
+  /** true si le dossier est encore actif et dépasse le délai indicatif de son type. */
+  en_retard?: boolean;
   etudiant?: {
     nom: string;
     prenom: string;
@@ -114,11 +121,22 @@ export interface MesRequetesResponse {
   pagination: Pagination;
 }
 
+export interface DocumentEntry {
+  id: number;
+  nom: string;
+  type: string;
+  taille: number;
+  uploaded_at: string;
+}
+
 export interface RequeteDetailResponse {
   requete: Requete & {
     updated_at: string;
   };
+  /** Champs spécifiques au type de la requête (requete_attestation / requete_correction_nom / requete_note). */
+  details: Record<string, unknown> | null;
   historique: HistoriqueStatutEntry[];
+  documents: DocumentEntry[];
 }
 
 export interface UploadDocumentResponse {

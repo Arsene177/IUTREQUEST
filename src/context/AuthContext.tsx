@@ -1,6 +1,6 @@
 'use client';
 
-import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { createContext, useContext, useState, useEffect, ReactNode, Dispatch, SetStateAction } from 'react';
 import { User } from '@/types';
 
 interface AuthContextType {
@@ -10,7 +10,7 @@ interface AuthContextType {
     notificationsNonLues: number;
     login: (token: string, user: User) => void;
     logout: () => void;
-    setNotificationsNonLues: (count: number) => void;
+    setNotificationsNonLues: Dispatch<SetStateAction<number>>;
     isAuthenticated: boolean;
 }
 

@@ -4,7 +4,7 @@ import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Header } from "@/components/layout/Header";
 import { RequeteFormShell } from "@/components/requetes/RequeteFormShell";
-import { TextField, TextAreaField, FileDropzone } from "@/components/ui";
+import { TextField, TextAreaField, FileDropzoneMulti } from "@/components/ui";
 import { correctionNomSchema, type CorrectionNomFormValues } from "@/lib/validation";
 import { useSubmitRequete } from "@/hooks/useSubmitRequete";
 import type { PayloadCorrectionNom } from "@/types";
@@ -18,7 +18,7 @@ export default function CorrectionNomPage() {
     formState: { errors },
   } = useForm<CorrectionNomFormValues>({
     resolver: zodResolver(correctionNomSchema),
-    defaultValues: { priorite: "normale" },
+    defaultValues: { priorite: "normale", justificatifs: [] },
   });
 
   const onSubmit = (values: CorrectionNomFormValues) => {
@@ -29,7 +29,7 @@ export default function CorrectionNomPage() {
       nouveau_nom: values.nouveau_nom,
       motif: values.motif,
     };
-    submit(payload, values.justificatif);
+    submit(payload, values.justificatifs);
   };
 
   return (
@@ -64,13 +64,13 @@ export default function CorrectionNomPage() {
 
         <Controller
           control={control}
-          name="justificatif"
+          name="justificatifs"
           render={({ field }) => (
-            <FileDropzone
-              label="Justificatif (CNI, acte de naissance)"
-              value={field.value ?? null}
+            <FileDropzoneMulti
+              label="Justificatifs (CNI, acte de naissance)"
+              value={field.value ?? []}
               onChange={field.onChange}
-              error={errors.justificatif?.message}
+              error={errors.justificatifs?.message}
             />
           )}
         />

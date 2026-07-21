@@ -17,6 +17,7 @@ export default function RequetesPage() {
       EN_COURS: 0,
       RESOLUE: 0,
       REJETE: 0,
+      ANNULEE: 0,
     };
 
     requetes.forEach((r) => {

@@ -5,6 +5,7 @@ export const STATUT_CONFIG = {
   VALIDEE: { label: "Validée", color: "#7C3AED", bg: "#EDE9FE", border: "#8B5CF6" },
   EN_EXECUTION: { label: "En exécution", color: "#0891B2", bg: "#CFFAFE", border: "#06B6D4" },
   REJETEE: { label: "Rejetée", color: "#DC2626", bg: "#FEE2E2", border: "#EF4444" },
+  ANNULEE: { label: "Annulée", color: "#6B7280", bg: "#F3F4F6", border: "#9CA3AF" },
   CLOTUREE: { label: "Clôturée", color: "#059669", bg: "#D1FAE5", border: "#10B981" },
 } as const;
 
@@ -36,11 +37,25 @@ export const CIBLES_ACHEMINEMENT: Record<string, { value: string; label: string 
   contestation_note: [{ value: "cellule_informatique", label: "Cellule informatique" }],
 };
 
+/**
+ * Types de requêtes qu'un rôle staff peut effectivement traiter, selon le
+ * circuit métier réel (cf. buildStaffRoleFilter côté backend). Sert à ne
+ * pas proposer, dans les filtres, des types que le rôle ne gère jamais.
+ */
+export const TYPES_VISIBLES_PAR_ROLE: Record<string, (keyof typeof TYPE_CONFIG)[]> = {
+  secretariat: ["effet_academique", "correction_nom"],
+  departement: ["contestation_note"],
+  directeur_adjoint: ["effet_academique"],
+  directeur: ["correction_nom"],
+  scolarite: ["effet_academique"],
+  cellule_informatique: ["correction_nom", "contestation_note"],
+};
+
 export const EXTENSIONS_ACCEPTEES = [".pdf", ".jpg", ".jpeg", ".png"];
 export const MIME_ACCEPTES = ["application/pdf", "image/jpeg", "image/png", "image/jpg"];
 export const TAILLE_MAX_FICHIER_OCTETS = 5 * 1024 * 1024;
 
-export type StatutFiltre = "EN_ATTENTE" | "EN_COURS" | "RESOLUE" | "REJETE";
+export type StatutFiltre = "EN_ATTENTE" | "EN_COURS" | "RESOLUE" | "REJETE" | "ANNULEE";
 
 export const STATUT_LABELS = Object.fromEntries(
   Object.entries(STATUT_CONFIG).map(([key, value]) => [key, value.label])
@@ -78,6 +93,7 @@ export const FILTRE_LABELS: Record<StatutFiltre, string> = {
   EN_COURS: "En cours",
   RESOLUE: "Résolues",
   REJETE: "Rejetés",
+  ANNULEE: "Annulées",
 };
 
 export const STATUT_TO_FILTRE = {
@@ -87,5 +103,6 @@ export const STATUT_TO_FILTRE = {
   VALIDEE: "RESOLUE",
   EN_EXECUTION: "RESOLUE",
   REJETEE: "REJETE",
+  ANNULEE: "ANNULEE",
   CLOTUREE: "RESOLUE",
 } as const satisfies Record<keyof typeof STATUT_CONFIG, StatutFiltre>;

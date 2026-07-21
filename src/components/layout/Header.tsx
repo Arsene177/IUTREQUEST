@@ -2,11 +2,13 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { Bell, Plus, Menu } from "lucide-react";
+import { Bell, Plus, Menu, Sun, Moon } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { formatDate } from "@/lib/format";
 import { NotificationsPanel } from "@/components/dashboard/NotificationsPanel";
 import { useMobileSidebar } from "@/context/MobileSidebarContext";
+import { useTheme } from "@/context/ThemeContext";
+import { useAuth } from "@/context/AuthContext";
 
 interface HeaderProps {
   title: string;
@@ -18,6 +20,8 @@ export function Header({ title, showNewRequestButton = false }: HeaderProps) {
   const [panelOpen, setPanelOpen] = useState(false);
   const router = useRouter();
   const { open: openSidebar } = useMobileSidebar();
+  const { theme, toggleTheme } = useTheme();
+  const { notificationsNonLues } = useAuth();
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect -- horloge : init au montage puis tick périodique, pattern standard
@@ -49,13 +53,28 @@ export function Header({ title, showNewRequestButton = false }: HeaderProps) {
       </div>
 
       <div className="flex items-center gap-3 sm:gap-5 flex-shrink-0">
+        <button
+          onClick={toggleTheme}
+          aria-label={theme === "dark" ? "Activer le mode clair" : "Activer le mode sombre"}
+          aria-pressed={theme === "dark"}
+          title={theme === "dark" ? "Mode clair" : "Mode sombre"}
+          className="text-[var(--color-ink)] hover:opacity-60 transition"
+        >
+          {theme === "dark" ? <Moon size={20} /> : <Sun size={20} />}
+        </button>
+
         <div className="relative">
           <button
             onClick={() => setPanelOpen((v) => !v)}
-            aria-label="Notifications"
+            aria-label={`Notifications${notificationsNonLues > 0 ? ` (${notificationsNonLues} non lues)` : ""}`}
             className="text-[var(--color-ink)] hover:opacity-60 transition relative"
           >
             <Bell size={22} />
+            {notificationsNonLues > 0 && (
+              <span className="absolute -top-1 -right-1 min-w-[16px] h-4 px-1 rounded-full bg-[var(--color-danger)] text-white text-[10px] font-bold flex items-center justify-center">
+                {notificationsNonLues > 9 ? "9+" : notificationsNonLues}
+              </span>
+            )}
           </button>
           {panelOpen && <NotificationsPanel onClose={() => setPanelOpen(false)} />}
         </div>

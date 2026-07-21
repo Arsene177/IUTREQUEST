@@ -18,6 +18,7 @@ export default function DashboardPage() {
       EN_COURS: 0,
       RESOLUE: 0,
       REJETE: 0,
+      ANNULEE: 0,
     };
     requetes.forEach((r) => {
       counts[STATUT_TO_FILTRE[r.statut]] += 1;
@@ -28,6 +29,7 @@ export default function DashboardPage() {
       enCours: counts.EN_COURS,
       resolues: counts.RESOLUE,
       rejetees: counts.REJETE,
+      annulees: counts.ANNULEE,
     };
   }, [requetes]);
 
@@ -79,6 +81,13 @@ export default function DashboardPage() {
                 accentColor="var(--color-status-rejetee)"
                 active={filtreActif === "REJETE"}
                 onClick={() => setFiltreActif(filtreActif === "REJETE" ? null : "REJETE")}
+              />
+              <StatCard
+                value={stats.annulees}
+                label="Annulées"
+                accentColor="var(--color-ink-faint)"
+                active={filtreActif === "ANNULEE"}
+                onClick={() => setFiltreActif(filtreActif === "ANNULEE" ? null : "ANNULEE")}
               />
             </div>
 

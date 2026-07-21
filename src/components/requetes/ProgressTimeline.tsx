@@ -9,24 +9,48 @@ interface ProgressTimelineProps {
 }
 
 export function ProgressTimeline({ statut, historique }: ProgressTimelineProps) {
-  const etapeActiveIndex = TIMELINE_STEPS.findIndex((step) => step.statuts.includes(statut));
+  // Chaque étape liste tous les statuts "au moins atteints" (cumulatif) :
+  // un statut avancé (ex: CLOTUREE) apparaît donc dans les 4 étapes à la
+  // fois. findIndex() renvoie la PREMIÈRE étape qui matche — toujours
+  // "Dépôt de la requête" — au lieu de la dernière, qui est la vraie étape
+  // atteinte. Il faut chercher la dernière correspondance, pas la première.
+  let etapeActiveIndex = -1;
+  for (let i = TIMELINE_STEPS.length - 1; i >= 0; i--) {
+    if (TIMELINE_STEPS[i].statuts.includes(statut)) {
+      etapeActiveIndex = i;
+      break;
+    }
+  }
   const estRejetee = statut === "REJETEE";
+  const estAnnulee = statut === "ANNULEE";
+  // CLOTUREE est un état terminal : la dernière étape n'est plus "en cours",
+  // elle est bel et bien terminée (coche verte, pas juste surlignée).
+  const estTerminee = statut === "CLOTUREE";
 
-  if (estRejetee) {
-    const entreeRejet = historique?.find((h) => h.nouveau_statut === "REJETEE");
+  if (estRejetee || estAnnulee) {
+    const nouveauStatutRecherche = estRejetee ? "REJETEE" : "ANNULEE";
+    const entree = historique?.find((h) => h.nouveau_statut === nouveauStatutRecherche);
     return (
-      <div className="rounded-lg bg-[var(--color-status-rejetee-bg)] px-4 py-3">
-        <p className="text-sm font-bold text-[var(--color-status-rejetee)]">
-          Cette requête a été rejetée.
+      <div
+        className="rounded-lg px-4 py-3"
+        style={{
+          backgroundColor: estRejetee ? "var(--color-status-rejetee-bg)" : "var(--color-canvas-soft)",
+        }}
+      >
+        <p
+          className="text-sm font-bold"
+          style={{ color: estRejetee ? "var(--color-status-rejetee)" : "var(--color-ink-muted)" }}
+        >
+          {estRejetee ? "Cette requête a été rejetée." : "Cette requête a été annulée par l'étudiant."}
         </p>
-        {entreeRejet?.motif && (
+        {entree?.motif && (
           <p className="text-sm text-[var(--color-ink-muted)] mt-1">
-            Motif : {entreeRejet.motif}
+            Motif : {entree.motif}
           </p>
         )}
-        {entreeRejet && (
+        {entree && (
           <p className="text-xs text-[var(--color-ink-faint)] mt-2">
-            Par {nomComplet(entreeRejet.nom, entreeRejet.prenom)} le {formatDate(entreeRejet.date)}
+            Par {nomComplet(entree.nom, entree.prenom)} le {formatDate(entree.date)}
           </p>
         )}
       </div>
@@ -36,8 +60,8 @@ export function ProgressTimeline({ statut, historique }: ProgressTimelineProps) 
   return (
     <ol className="relative flex flex-col gap-6">
       {TIMELINE_STEPS.map((step, index) => {
-        const isDone = index < etapeActiveIndex;
-        const isActive = index === etapeActiveIndex;
+        const isDone = index < etapeActiveIndex || (estTerminee && index === etapeActiveIndex);
+        const isActive = index === etapeActiveIndex && !estTerminee;
         const isLast = index === TIMELINE_STEPS.length - 1;
         return (
           <li key={step.key} className="flex items-start gap-4 relative">

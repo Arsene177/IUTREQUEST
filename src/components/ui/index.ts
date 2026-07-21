@@ -3,7 +3,7 @@ export { IutRequestLogo } from "./IutRequestLogo";
 export { TextField } from "./TextField";
 export { TextAreaField } from "./TextAreaField";
 export { SelectField } from "./SelectField";
-export { FileDropzone } from "./FileDropzone";
+export { FileDropzone, FileDropzoneMulti } from "./FileDropzone";
 export { StatusBadge } from "./StatusBadge";
 export { Card } from "./Card";
 export { Modal } from "./Modal";

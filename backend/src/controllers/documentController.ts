@@ -4,39 +4,15 @@ import fs from 'fs';
 import pool from '../config/db';
 import { AuthRequest } from '../middlewares/authMiddleware';
 import { notifyRole } from '../services/notificationService';
-
-const STAFF_ROLES = [
-  'secretariat',
-  'directeur',
-  'directeur_adjoint',
-  'departement',
-  'scolarite',
-  'cellule_informatique',
-];
+import { canAccessRequete as checkAccesRequete } from '../utils/requeteAccess';
 
 async function canAccessRequete(
   requeteId: string,
   userId: number,
   role: string
 ): Promise<{ ok: boolean; requete?: any }> {
-  const [requetes]: any = await pool.execute('SELECT * FROM requete WHERE id = ?', [requeteId]);
-  if (requetes.length === 0) return { ok: false };
-
-  const requete = requetes[0];
-
-  if (role === 'etudiant') {
-    const [etudiant]: any = await pool.execute(
-      'SELECT id FROM etudiant WHERE user_id = ? AND id = ?',
-      [userId, requete.etudiant_id]
-    );
-    return { ok: etudiant.length > 0, requete };
-  }
-
-  if (STAFF_ROLES.includes(role)) {
-    return { ok: true, requete };
-  }
-
-  return { ok: false };
+  const access = await checkAccesRequete({ user: { id: userId, role, email: '' } } as AuthRequest, requeteId);
+  return { ok: access.allowed, requete: access.requete };
 }
 
 // POST /requetes/:id/documents

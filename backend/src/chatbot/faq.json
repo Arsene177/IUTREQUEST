@@ -1,8 +1,8 @@
 [
   {
-    "keywords": ["délai", "temps", "combien de temps", "quand"],
+    "keywords": ["délai", "temps", "combien de temps", "quand", "durée"],
     "question": "Quels sont les délais de traitement d'une requête ?",
-    "answer": "Les délais varient selon le type de requête. En général, les requêtes sont traitées sous 3 à 5 jours ouvrables. Pour des demandes plus complexes nécessitant une validation par la direction, cela peut prendre jusqu'à 2 semaines."
+    "answer": "Les délais varient selon le type de requête. En général, comptez 3 à 5 jours ouvrables pour un effet académique ou une correction de nom. Une contestation de note prend généralement plus longtemps (1 à 2 semaines) car elle nécessite l'avis de l'enseignant concerné avant toute correction."
   },
   {
     "keywords": ["contact", "contacter", "téléphone", "email", "joindre"],
@@ -10,43 +10,98 @@
     "answer": "Vous pouvez contacter le secrétariat par email à l'adresse secretariat@iut.edu, par téléphone au 01 23 45 67 89, ou vous présenter à l'accueil du bâtiment principal entre 8h30 et 17h00."
   },
   {
-    "keywords": ["documents", "pièces justificatives", "justificatif", "papier"],
+    "keywords": ["documents", "pièces justificatives", "justificatif", "papier", "format", "taille", "pdf", "jpg", "png", "combien de fichiers", "plusieurs fichiers"],
     "question": "Quels documents sont nécessaires pour mes requêtes ?",
-    "answer": "Cela dépend de la requête. Pour un effet académique (ex: absence), un justificatif médical ou professionnel est souvent requis. Pour une correction de nom, une pièce d'identité officielle est nécessaire. Les documents précis vous seront demandés lors du remplissage du formulaire."
+    "answer": "Cela dépend de la requête. Pour un effet académique, un justificatif médical ou professionnel est souvent requis. Pour une correction de nom, une pièce d'identité officielle est nécessaire. Pour une contestation de note, la copie corrigée si vous l'avez. Vous pouvez joindre jusqu'à 5 fichiers par requête, au format PDF, JPG ou PNG, 5 Mo maximum chacun."
   },
   {
-    "keywords": ["absence", "malade", "maladie", "justifier", "manqué", "effet académique"],
-    "question": "Comment justifier une absence (Effet académique) ?",
-    "answer": "Si vous avez manqué un cours ou un examen pour une raison valable (maladie, urgence), vous devez soumettre une requête d'« Effet académique » accompagnée de vos justificatifs (ex: certificat médical) dans les 48 heures suivant votre absence."
+    "keywords": ["attestation", "relevé", "relevé de notes", "certificat", "diplôme", "effet académique", "document officiel"],
+    "question": "Comment obtenir une attestation, un relevé de notes ou un certificat ?",
+    "answer": "Vous pouvez demander un document officiel (attestation de scolarité, relevé de notes, certificat...) via une requête « Effet académique ». Précisez le document souhaité et l'année académique concernée dans le formulaire."
   },
   {
-    "keywords": ["nom", "prénom", "erreur", "orthographe", "correction de nom"],
+    "keywords": ["nom", "prénom", "erreur", "orthographe", "correction de nom", "état civil"],
     "question": "Comment corriger une erreur dans mon nom ou prénom ?",
-    "answer": "Si votre nom ou prénom est mal orthographié sur les documents de l'IUT, vous devez soumettre une requête de « Correction de nom » en joignant une copie de votre carte d'identité ou passeport valide."
+    "answer": "Si votre nom ou prénom est mal orthographié sur les documents de l'IUT, soumettez une requête de « Correction de nom » en joignant une copie de votre carte d'identité ou passeport valide, plus une brève description de l'erreur."
   },
   {
-    "keywords": ["note", "erreur note", "contestation", "révision", "revoir"],
+    "keywords": ["note", "erreur note", "contestation", "révision", "revoir", "réviser une note"],
     "question": "Comment contester ou demander la révision d'une note ?",
-    "answer": "Pour contester une note, vous devez d'abord en discuter avec le professeur concerné. Si le problème persiste, vous pouvez soumettre une requête de « Contestation de note » en fournissant tous les éléments justifiant votre demande (copie de l'examen, etc.)."
+    "answer": "Avant toute chose, discutez-en directement avec l'enseignant concerné. Si le désaccord persiste, soumettez une requête de « Contestation de note » en précisant la matière, la note actuelle, la note demandée et le motif détaillé (30 caractères minimum). Le département reçoit votre dossier, le transmet à l'enseignant pour avis, puis la cellule informatique effectue la correction si elle est validée."
   },
   {
-    "keywords": ["état", "statut", "suivre", "avancement"],
+    "keywords": ["état", "statut", "suivre", "avancement", "où en est"],
     "question": "Comment puis-je suivre l'état de ma requête ?",
-    "answer": "Vous pouvez suivre l'état de vos requêtes en vous connectant à votre portail étudiant et en naviguant vers la section 'Mes Requêtes'. Le statut sera mis à jour en temps réel (En attente, En traitement, Validé, Rejeté)."
+    "answer": "Connectez-vous à votre tableau de bord et ouvrez « Mes requêtes » : chaque dossier affiche son statut actuel et une timeline détaillée. Le statut est mis à jour à chaque étape du traitement."
   },
   {
-    "keywords": ["modifier", "changer", "annuler", "supprimer"],
+    "keywords": ["signifie", "veut dire", "en attente", "en cours", "validée", "en exécution", "rejetée", "clôturée", "annulée", "attente info", "c'est quoi le statut"],
+    "question": "Que signifient les différents statuts d'une requête ?",
+    "answer": "En attente : votre requête vient d'être soumise, personne ne l'a encore réceptionnée. En cours : elle est en cours de traitement par le service concerné. Attente info : un document complémentaire vous est demandé. Validée : le dossier a été approuvé. En exécution : la correction/le document est en cours de production. Clôturée : le traitement est terminé. Rejetée : la demande n'a pas été acceptée (un motif est indiqué). Annulée : vous avez vous-même annulé la requête avant sa réception."
+  },
+  {
+    "keywords": ["qui traite", "qui s'occupe", "service", "secrétariat", "direction", "département", "cellule informatique", "scolarité", "rôle"],
+    "question": "Qui traite ma requête au sein de l'IUT ?",
+    "answer": "Selon le type de requête : le secrétariat réceptionne les effets académiques et corrections de nom puis les oriente vers la direction (adjointe pour les effets académiques, directeur pour les corrections de nom) qui valide. La scolarité ou la cellule informatique exécute et clôture. Pour une contestation de note, c'est le département qui reçoit le dossier, recueille l'avis de l'enseignant, puis transmet à la cellule informatique pour la correction finale."
+  },
+  {
+    "keywords": ["modifier", "changer ma requête", "annuler", "supprimer"],
     "question": "Puis-je modifier ou annuler une requête soumise ?",
-    "answer": "Tant que votre requête est au statut 'En attente' (non encore réceptionnée par le secrétariat), vous pouvez l'annuler depuis votre tableau de bord. Une fois en cours de traitement, il n'est plus possible de la modifier ou de l'annuler directement."
+    "answer": "Tant que votre requête est au statut « En attente » (non encore réceptionnée), vous pouvez l'annuler depuis sa page de détail : elle passera au statut « Annulée ». Une fois en cours de traitement, il n'est plus possible de l'annuler vous-même ; contactez le secrétariat si besoin."
   },
   {
-    "keywords": ["mot de passe", "connexion", "compte", "accès"],
+    "keywords": ["mot de passe oublié", "oublié mon mot de passe", "impossible de me connecter", "connexion", "accès", "je n'arrive pas à me connecter"],
     "question": "J'ai oublié mon mot de passe ou je n'arrive pas à me connecter, que faire ?",
-    "answer": "Veuillez utiliser le lien 'Mot de passe oublié' sur la page de connexion. Si le problème persiste, veuillez contacter le support informatique de l'IUT à support.it@iut.edu."
+    "answer": "Sur la page de connexion, cliquez sur « Mot de passe oublié ? » et renseignez votre nom, prénom, matricule et date de naissance pour recevoir un nouveau mot de passe temporaire. Vous pourrez ensuite le modifier depuis Paramètres → Changer le mot de passe."
   },
   {
-    "keywords": ["horaires", "ouverture", "fermeture", "secrétariat"],
+    "keywords": ["changer mon mot de passe", "modifier mon mot de passe", "nouveau mot de passe"],
+    "question": "Comment changer mon mot de passe une fois connecté ?",
+    "answer": "Rendez-vous dans « Paramètres », puis « Changer le mot de passe ». Vous devrez saisir votre mot de passe actuel puis le nouveau, deux fois pour confirmation."
+  },
+  {
+    "keywords": ["horaires", "ouverture", "fermeture"],
     "question": "Quels sont les horaires d'ouverture du secrétariat ?",
     "answer": "Le secrétariat de l'IUT est ouvert du lundi au vendredi, de 8h30 à 12h30 et de 13h30 à 17h00. Il est fermé le week-end et les jours fériés."
+  },
+  {
+    "keywords": ["priorité", "urgente", "normale", "urgence"],
+    "question": "À quoi sert la priorité « urgente » sur une requête ?",
+    "answer": "La priorité « urgente » signale au service concerné que votre dossier nécessite une attention rapide (ex : délai administratif serré). Elle n'accélère pas automatiquement le traitement mais permet aux équipes de prioriser visuellement les dossiers les plus sensibles."
+  },
+  {
+    "keywords": ["mes documents", "voir mes documents", "documents envoyés", "télécharger mes documents", "consulter mes documents"],
+    "question": "Puis-je consulter les documents que j'ai envoyés ?",
+    "answer": "Oui, ouvrez le détail de votre requête depuis « Mes requêtes » : la liste des documents joints y est affichée avec un bouton de téléchargement pour chacun."
+  },
+  {
+    "keywords": ["notification", "notifications", "être prévenu", "alerte"],
+    "question": "Comment savoir qu'il y a du nouveau sur ma requête ?",
+    "answer": "Vous recevez une notification dans l'application à chaque changement de statut de votre requête (réception, validation, demande d'information, clôture...). Consultez la cloche de notifications en haut de votre tableau de bord."
+  },
+  {
+    "keywords": ["types de requête", "quels types", "quelles requêtes", "différence entre"],
+    "question": "Quels types de requêtes puis-je soumettre ?",
+    "answer": "Trois types : « Effet académique » (attestation, relevé de notes, certificat...), « Correction de nom » (erreur d'état civil dans vos documents) et « Contestation de note » (désaccord sur une note obtenue). Chacun a son propre formulaire accessible depuis « Nouvelle requête »."
+  },
+  {
+    "keywords": ["assistant", "chatbot", "bot", "aide", "comment utiliser", "revenir au menu", "retour menu"],
+    "question": "Comment utiliser cet assistant ?",
+    "answer": "Posez votre question directement, ou utilisez les boutons de suggestion. À tout moment, tapez « menu » ou cliquez sur « Retour au menu » pour revenir aux options principales. Le bouton « Réinitialiser » en haut du chat efface l'historique de la conversation."
+  },
+  {
+    "keywords": ["janngo", "iutrequest", "qu'est-ce que", "à quoi sert cette application", "c'est quoi ce site"],
+    "question": "Qu'est-ce que JANNGO / IUTRequest ?",
+    "answer": "C'est la plateforme officielle de gestion des requêtes administratives de l'IUT : elle vous permet de soumettre, suivre et gérer vos demandes (effets académiques, corrections de nom, contestations de note) sans avoir à vous déplacer au secrétariat pour chaque étape."
+  },
+  {
+    "keywords": ["rejetée", "refusée", "pourquoi rejeté", "requête refusée"],
+    "question": "Ma requête a été rejetée, que faire ?",
+    "answer": "Le motif du rejet est indiqué dans l'historique de votre requête (visible sur sa page de détail). Vous pouvez soumettre une nouvelle requête en tenant compte de ce motif, ou contacter le secrétariat pour plus de précisions."
+  },
+  {
+    "keywords": ["attente info", "information complémentaire", "document manquant", "compléter mon dossier"],
+    "question": "Ma requête est en « Attente d'information », que dois-je faire ?",
+    "answer": "Le service en charge de votre dossier a besoin d'un document supplémentaire. Ouvrez le détail de votre requête : un encart « Information complémentaire requise » vous permet d'envoyer directement le document manquant, ce qui remet automatiquement le dossier en traitement."
   }
 ]

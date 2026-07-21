@@ -19,6 +19,19 @@ export interface ChangerMotDePassePayload {
   nouveau_mot_de_passe: string;
 }
 
+export interface ResultatLigneImport {
+  ligne: number;
+  matricule?: string;
+  statut: "cree" | "ignore";
+  raison?: string;
+  mot_de_passe_genere?: string;
+}
+
+export interface ImportEtudiantsResponse {
+  message: string;
+  resultats: ResultatLigneImport[];
+}
+
 export const authApi = {
   async login(payload: LoginPayload): Promise<LoginResponse> {
     const { data } = await apiClient.post<LoginResponse>("/auth/login", payload);
@@ -55,6 +68,17 @@ export const authApi = {
     const { data } = await apiClient.put<{ message: string }>(
       "/auth/change-password",
       payload
+    );
+    return data;
+  },
+
+  async importEtudiants(fichier: File): Promise<ImportEtudiantsResponse> {
+    const formData = new FormData();
+    formData.append("fichier", fichier);
+    const { data } = await apiClient.post<ImportEtudiantsResponse>(
+      "/auth/import-etudiants",
+      formData,
+      { headers: { "Content-Type": "multipart/form-data" } }
     );
     return data;
   },

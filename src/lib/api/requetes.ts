@@ -2,10 +2,19 @@ import { apiClient } from "@/lib/api-client";
 import type {
   CreerRequeteResponse,
   MesRequetesResponse,
+  PayloadContestationNote,
+  PayloadCorrectionNom,
+  PayloadEffetAcademique,
   PayloadNouvelleRequete,
   RequeteDetailResponse,
   UploadDocumentResponse,
 } from "@/types";
+
+/** Omit distribue mal sur une union discriminée : on l'applique variante par variante. */
+export type PayloadModifierRequete =
+  | Omit<PayloadEffetAcademique, "type">
+  | Omit<PayloadCorrectionNom, "type">
+  | Omit<PayloadContestationNote, "type">;
 
 export const requetesApi = {
   async creer(payload: PayloadNouvelleRequete): Promise<CreerRequeteResponse> {
@@ -27,6 +36,12 @@ export const requetesApi = {
 
   async annuler(id: number): Promise<{ message: string }> {
     const { data } = await apiClient.put<{ message: string }>(`/requetes/${id}/annuler`);
+    return data;
+  },
+
+  /** Modifie les informations d'une requête EN_ATTENTE (pas encore réceptionnée). */
+  async modifier(id: number, payload: PayloadModifierRequete): Promise<{ message: string }> {
+    const { data } = await apiClient.put<{ message: string }>(`/requetes/${id}`, payload);
     return data;
   },
 
@@ -52,8 +67,23 @@ export const documentsApi = {
     return data;
   },
 
-  /** Retourne l'URL de téléchargement (ouverte via window.open, le token est ajouté côté serveur de fichiers statiques ou via fetch+blob si protégé) */
-  downloadUrl(requeteId: number, docId: number): string {
-    return `${apiClient.defaults.baseURL}/requetes/${requeteId}/documents/${docId}`;
+  /**
+   * Télécharge un document joint. La route backend exige un Bearer token
+   * (authMiddleware) : on passe par apiClient (qui l'injecte) et on
+   * récupère un blob plutôt qu'une URL brute, qu'un simple <a href> ne
+   * pourrait pas authentifier.
+   */
+  async telecharger(requeteId: number, docId: number, nomFichier: string): Promise<void> {
+    const response = await apiClient.get(`/requetes/${requeteId}/documents/${docId}`, {
+      responseType: "blob",
+    });
+    const url = window.URL.createObjectURL(new Blob([response.data]));
+    const lien = document.createElement("a");
+    lien.href = url;
+    lien.download = nomFichier;
+    document.body.appendChild(lien);
+    lien.click();
+    lien.remove();
+    window.URL.revokeObjectURL(url);
   },
 };

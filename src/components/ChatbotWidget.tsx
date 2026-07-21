@@ -2,7 +2,9 @@
 
 import { useState, useEffect, useRef } from "react";
 import { MessageCircle, X, Send } from "lucide-react";
+import { useRouter } from "next/navigation";
 import { API_BASE_URL } from "@/lib/api-client";
+import { useAuth } from "@/context/AuthContext";
 
 interface ChatMessage {
   role: "bot" | "user";
@@ -18,9 +20,31 @@ export default function ChatbotWidget() {
   const [sessionId, setSessionId] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const router = useRouter();
+  const { user, isLoading: authIsLoading } = useAuth();
 
-  // Initialize session ID on mount
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  };
+
+  // Initialise (ou réinitialise) la session au montage et à chaque
+  // changement d'utilisateur connecté — sessionStorage persiste par onglet,
+  // pas par utilisateur : sans ce contrôle, se déconnecter puis se
+  // reconnecter avec un autre compte gardait l'historique du précédent.
   useEffect(() => {
+    if (authIsLoading) return;
+
+    const proprietaireActuel = user ? String(user.id) : "invite";
+    const proprietaireStocke = sessionStorage.getItem("chatbot_session_owner");
+
+    if (proprietaireStocke !== null && proprietaireStocke !== proprietaireActuel) {
+      sessionStorage.removeItem("chatbot_session_id");
+      sessionStorage.removeItem("chatbot_history");
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- réaction à un changement d'utilisateur détecté au montage/rechargement, pas d'alternative sans effet
+      setMessages([]);
+    }
+    sessionStorage.setItem("chatbot_session_owner", proprietaireActuel);
+
     let sid = sessionStorage.getItem("chatbot_session_id");
     if (!sid) {
       sid = Math.random().toString(36).substring(2, 15);
@@ -28,16 +52,16 @@ export default function ChatbotWidget() {
     }
     setSessionId(sid);
 
-    // Load history from session storage if exists
     const history = sessionStorage.getItem("chatbot_history");
     if (history) {
       try {
         setMessages(JSON.parse(history));
-      } catch (e) {
-        // failed to parse
+      } catch {
+        // historique corrompu : on repart d'une conversation vide
       }
     }
-  }, []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- ne réagir qu'au changement d'identité, pas à chaque nouvelle référence de `user`
+  }, [user?.id, authIsLoading]);
 
   // Save history to session storage when updated
   useEffect(() => {
@@ -47,15 +71,17 @@ export default function ChatbotWidget() {
     scrollToBottom();
   }, [messages]);
 
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  };
-
   const sendMessage = async (text: string) => {
-    if (!text.trim() || !sessionId) return;
+    // Un texte vide est autorisé une seule fois : c'est l'appel d'amorçage
+    // envoyé par handleOpen() pour déclencher le message d'accueil du bot à
+    // la première ouverture, sans qu'il n'y ait de bulle utilisateur vide.
+    const isBootstrap = text === "";
+    if ((!text.trim() && !isBootstrap) || !sessionId) return;
 
-    const userMessage: ChatMessage = { role: "user", content: text };
-    setMessages((prev) => [...prev, userMessage]);
+    if (!isBootstrap) {
+      const userMessage: ChatMessage = { role: "user", content: text };
+      setMessages((prev) => [...prev, userMessage]);
+    }
     setInputMessage("");
     setIsLoading(true);
 
@@ -106,6 +132,12 @@ export default function ChatbotWidget() {
     }
   };
 
+  // Le chatbot n'accompagne que le parcours étudiant : le staff en a un
+  // usage nul (il n'oriente que vers les formulaires de dépôt de requête).
+  if (authIsLoading || user?.role !== "etudiant") {
+    return null;
+  }
+
   return (
     // bottom-24 sur mobile : laisse la bottom nav (Sidebar) et son bouton
     // "Quitter" libres de clics ; le bouton flottant remonte au-dessus.
@@ -155,12 +187,16 @@ export default function ChatbotWidget() {
                 >
                   <p className="text-sm whitespace-pre-wrap">{msg.content}</p>
                   {msg.redirectUrl && (
-                    <a
-                      href={msg.redirectUrl}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsOpen(false);
+                        router.push(msg.redirectUrl!);
+                      }}
                       className="inline-block mt-2 text-xs bg-blue-100 text-blue-700 px-3 py-1.5 rounded-full font-medium hover:bg-blue-200 transition-colors"
                     >
                       Aller au formulaire →
-                    </a>
+                    </button>
                   )}
                 </div>
 

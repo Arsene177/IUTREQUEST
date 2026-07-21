@@ -9,6 +9,11 @@ export const notificationsApi = {
     return data;
   },
 
+  async nbNonLues(): Promise<{ nb: number }> {
+    const { data } = await apiClient.get<{ nb: number }>("/notifications/nb-non-lues");
+    return data;
+  },
+
   async marquerLue(id: number): Promise<{ message: string }> {
     const { data } = await apiClient.put<{ message: string }>(
       `/notifications/${id}/lu`
