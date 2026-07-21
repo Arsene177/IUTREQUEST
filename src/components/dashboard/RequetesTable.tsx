@@ -6,7 +6,7 @@ import { TYPE_REQUETE_LABELS, FILTRE_LABELS, STATUT_TO_FILTRE, type StatutFiltre
 import { formatDate } from "@/lib/format";
 import type { Requete } from "@/types";
 
-const FILTRES: StatutFiltre[] = ["EN_ATTENTE", "EN_COURS", "RESOLUE", "REJETE"];
+const FILTRES: StatutFiltre[] = ["EN_ATTENTE", "EN_COURS", "RESOLUE", "REJETE", "ANNULEE"];
 
 interface RequetesTableProps {
   requetes: Requete[];
@@ -66,7 +66,7 @@ export function RequetesTable({ requetes, filtreActif, onToggleFiltre }: Requete
                   onClick={() => router.push(`/requetes/${requete.id}`)}
                   className="border-t border-[var(--color-cream-line)] cursor-pointer hover:bg-[var(--color-cream-soft)] transition"
                 >
-                  <td className="px-6 py-4 font-bold text-[var(--color-ink)]">#{requete.id}</td>
+                  <td className="px-6 py-4 font-bold text-[var(--color-ink)]">#{requete.numero ?? requete.id}</td>
                   <td className="px-6 py-4 text-[var(--color-ink)]">
                     {TYPE_REQUETE_LABELS[requete.type]}
                   </td>

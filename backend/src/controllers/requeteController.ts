@@ -6,6 +6,7 @@ import {
   buildStaffRoleFilter,
   canAccessRequete,
   getEtudiantIdForUser,
+  isRequeteVisibleToRole,
   isStaffRole,
 } from '../utils/requeteAccess';
 
@@ -23,11 +24,54 @@ const CIBLES_ACHEMINEMENT_VALIDES: Record<string, string[]> = {
   contestation_note: ['cellule_informatique'],
 };
 
+/**
+ * Délai indicatif (en jours) communiqué aux étudiants dans la FAQ du
+ * chatbot : au-delà, un dossier encore actif est considéré "en retard".
+ */
+const SLA_JOURS_PAR_TYPE: Record<string, number> = {
+  effet_academique: 5,
+  correction_nom: 5,
+  contestation_note: 14,
+};
+const STATUTS_TERMINAUX = ['CLOTUREE', 'REJETEE', 'ANNULEE'];
+
+/** Fragment SQL calculant l'ancienneté et le retard d'une requête `r`. */
+const SQL_RETARD = `
+  DATEDIFF(NOW(), r.date_depot) AS jours_ecoules,
+  CASE
+    WHEN r.statut IN ('CLOTUREE', 'REJETEE', 'ANNULEE') THEN 0
+    WHEN r.type = 'contestation_note' AND DATEDIFF(NOW(), r.date_depot) > ${SLA_JOURS_PAR_TYPE.contestation_note} THEN 1
+    WHEN r.type IN ('effet_academique', 'correction_nom') AND DATEDIFF(NOW(), r.date_depot) > ${SLA_JOURS_PAR_TYPE.effet_academique} THEN 1
+    ELSE 0
+  END AS en_retard
+`;
+
+/** Équivalent JS de SQL_RETARD, pour les cas où la requête est déjà chargée en mémoire. */
+function calculerRetard(requete: { type: string; statut: string; date_depot: string | Date }) {
+  const joursEcoules = Math.floor(
+    (Date.now() - new Date(requete.date_depot).getTime()) / (1000 * 60 * 60 * 24)
+  );
+  const seuil = SLA_JOURS_PAR_TYPE[requete.type] ?? SLA_JOURS_PAR_TYPE.effet_academique;
+  const enRetard = !STATUTS_TERMINAUX.includes(requete.statut) && joursEcoules > seuil;
+  return { jours_ecoules: joursEcoules, en_retard: enRetard };
+}
+
 async function fetchRequeteDetails(requeteId: string | number) {
   const [requetes]: any = await pool.execute('SELECT * FROM requete WHERE id = ?', [requeteId]);
   if (requetes.length === 0) return null;
 
   const requete = requetes[0];
+
+  // Numéro d'ordre propre à l'étudiant (sa 1ère, 2e, 3e requête...), affiché
+  // à l'étudiant à la place de l'id global de la table (qui mélange toutes
+  // les requêtes de tous les étudiants et n'a donc aucun sens pour lui).
+  const [numeroRows]: any = await pool.execute(
+    'SELECT COUNT(*) as numero FROM requete WHERE etudiant_id = ? AND id <= ?',
+    [requete.etudiant_id, requete.id]
+  );
+  requete.numero = numeroRows[0].numero;
+  Object.assign(requete, calculerRetard(requete));
+
   let details = null;
 
   if (requete.type === 'effet_academique') {
@@ -167,6 +211,83 @@ export const creerRequete = async (req: AuthRequest, res: Response): Promise<voi
   }
 };
 
+// PUT /requetes/:id
+// Modification par l'étudiant des informations de sa requête, uniquement
+// tant qu'elle est EN_ATTENTE (pas encore réceptionnée par un service) —
+// même garde-fou que l'annulation.
+export const modifierRequete = async (req: AuthRequest, res: Response): Promise<void> => {
+  const { id } = req.params;
+  const { priorite, ...details } = req.body;
+
+  try {
+    const access = await canAccessRequete(req, String(id));
+    if (!access.allowed || req.user!.role !== 'etudiant') {
+      res.status(404).json({ message: 'Requête introuvable' });
+      return;
+    }
+
+    const requete = access.requete!;
+    if (requete.statut !== 'EN_ATTENTE') {
+      res.status(400).json({ message: 'Seules les requêtes EN_ATTENTE peuvent être modifiées' });
+      return;
+    }
+
+    if (requete.type === 'effet_academique') {
+      const { type_document, annee_academique, motif } = details;
+      if (!type_document || !annee_academique) {
+        res.status(400).json({ message: 'type_document et annee_academique sont requis' });
+        return;
+      }
+      await pool.execute(
+        'UPDATE requete_attestation SET type_document = ?, annee_academique = ?, motif = ? WHERE requete_id = ?',
+        [type_document, annee_academique, motif || null, id]
+      );
+    } else if (requete.type === 'correction_nom') {
+      const { ancien_nom, nouveau_nom, motif } = details;
+      if (!ancien_nom || !nouveau_nom) {
+        res.status(400).json({ message: 'ancien_nom et nouveau_nom sont requis' });
+        return;
+      }
+      await pool.execute(
+        'UPDATE requete_correction_nom SET ancien_nom = ?, nouveau_nom = ?, motif = ? WHERE requete_id = ?',
+        [ancien_nom, nouveau_nom, motif || null, id]
+      );
+    } else if (requete.type === 'contestation_note') {
+      const { code_matiere, note_actuelle, note_contestee, motif_contestation } = details;
+      if (
+        !code_matiere ||
+        note_actuelle === undefined ||
+        note_contestee === undefined ||
+        !motif_contestation
+      ) {
+        res.status(400).json({ message: 'Champs contestation_note incomplets' });
+        return;
+      }
+      if (String(motif_contestation).length < 30) {
+        res.status(400).json({ message: 'Le motif doit faire au moins 30 caractères' });
+        return;
+      }
+      await pool.execute(
+        'UPDATE requete_note SET code_matiere = ?, note_actuelle = ?, note_contestee = ?, motif_contestation = ? WHERE requete_id = ?',
+        [code_matiere, note_actuelle, note_contestee, motif_contestation, id]
+      );
+    }
+
+    if (priorite === 'normale' || priorite === 'urgente') {
+      await pool.execute('UPDATE requete SET priorite = ? WHERE id = ?', [priorite, id]);
+    }
+
+    await pool.execute(
+      'INSERT INTO historique_statut (requete_id, ancien_statut, nouveau_statut, change_par, commentaire) VALUES (?, ?, ?, ?, ?)',
+      [id, 'EN_ATTENTE', 'EN_ATTENTE', req.user!.id, 'Requête modifiée par l\'étudiant']
+    );
+
+    res.status(200).json({ message: 'Requête modifiée avec succès' });
+  } catch (error) {
+    res.status(500).json({ message: 'Erreur serveur', error });
+  }
+};
+
 // GET /requetes/me
 export const getMesRequetes = async (req: AuthRequest, res: Response): Promise<void> => {
   const page = parseInt(req.query.page as string) || 1;
@@ -181,7 +302,8 @@ export const getMesRequetes = async (req: AuthRequest, res: Response): Promise<v
     }
 
     const [requetes]: any = await pool.execute(
-      `SELECT id, type, statut, priorite, date_depot, updated_at
+      `SELECT id, type, statut, priorite, date_depot, updated_at,
+              ROW_NUMBER() OVER (ORDER BY id ASC) AS numero
        FROM requete WHERE etudiant_id = ?
        ORDER BY date_depot DESC LIMIT ${limit} OFFSET ${offset}`,
       [etudiantId]
@@ -257,11 +379,11 @@ export const annulerRequete = async (req: AuthRequest, res: Response): Promise<v
       return;
     }
 
-    await pool.execute('UPDATE requete SET statut = ? WHERE id = ?', ['REJETEE', id]);
+    await pool.execute('UPDATE requete SET statut = ? WHERE id = ?', ['ANNULEE', id]);
 
     await pool.execute(
       'INSERT INTO historique_statut (requete_id, ancien_statut, nouveau_statut, change_par, commentaire) VALUES (?, ?, ?, ?, ?)',
-      [id, 'EN_ATTENTE', 'REJETEE', req.user!.id, 'Annulée par l\'étudiant']
+      [id, 'EN_ATTENTE', 'ANNULEE', req.user!.id, 'Annulée par l\'étudiant']
     );
 
     res.status(200).json({ message: 'Requête annulée avec succès' });
@@ -321,6 +443,7 @@ export const getRequetesStaff = async (req: AuthRequest, res: Response): Promise
   const statut = req.query.statut as string;
   const type = req.query.type as string;
   const search = (req.query.search as string)?.trim();
+  const retardSeulement = req.query.retard === '1';
   const offset = (page - 1) * limit;
 
   try {
@@ -328,7 +451,8 @@ export const getRequetesStaff = async (req: AuthRequest, res: Response): Promise
 
     let baseQuery = `
       SELECT r.id, r.type, r.statut, r.priorite, r.date_depot, r.updated_at,
-             e.matricule, u.nom as etudiant_nom, u.prenom as etudiant_prenom
+             e.matricule, u.nom as etudiant_nom, u.prenom as etudiant_prenom,
+             ${SQL_RETARD}
       FROM requete r
       JOIN etudiant e ON r.etudiant_id = e.id
       JOIN users u ON e.user_id = u.id
@@ -367,10 +491,24 @@ export const getRequetesStaff = async (req: AuthRequest, res: Response): Promise
       queryParams.push(idSearch, like, like, like);
     }
 
+    // en_retard est un alias calculé : HAVING (pas WHERE) pour pouvoir le
+    // référencer. La requête de comptage recalcule la même condition en
+    // clair puisqu'elle ne fait pas cette projection.
+    const countParams = [...queryParams];
+    if (retardSeulement) {
+      baseQuery += ` HAVING en_retard = 1`;
+      countQuery += ` AND (
+        r.statut NOT IN ('CLOTUREE', 'REJETEE', 'ANNULEE') AND (
+          (r.type = 'contestation_note' AND DATEDIFF(NOW(), r.date_depot) > ${SLA_JOURS_PAR_TYPE.contestation_note})
+          OR (r.type IN ('effet_academique', 'correction_nom') AND DATEDIFF(NOW(), r.date_depot) > ${SLA_JOURS_PAR_TYPE.effet_academique})
+        )
+      )`;
+    }
+
     baseQuery += ` ORDER BY r.date_depot DESC LIMIT ${limit} OFFSET ${offset}`;
 
     const [requetes]: any = await pool.execute(baseQuery, queryParams as any[]);
-    const [totalRows]: any = await pool.execute(countQuery, queryParams as any[]);
+    const [totalRows]: any = await pool.execute(countQuery, countParams as any[]);
 
     res.status(200).json({
       requetes,
@@ -506,10 +644,57 @@ export const getStats = async (req: AuthRequest, res: Response): Promise<void> =
       roleFilter.params as any[]
     );
 
+    // Nombre de dossiers actifs ayant dépassé le délai indicatif de leur
+    // type (cf. SLA_JOURS_PAR_TYPE) — alimente le badge "En retard" du
+    // dashboard staff.
+    const [retard]: any = await pool.execute(
+      `SELECT COUNT(*) as total FROM requete r ${whereRole}
+       ${whereRole ? 'AND' : 'WHERE'} r.statut NOT IN ('CLOTUREE', 'REJETEE', 'ANNULEE')
+       AND (
+         (r.type = 'contestation_note' AND DATEDIFF(NOW(), r.date_depot) > ${SLA_JOURS_PAR_TYPE.contestation_note})
+         OR (r.type IN ('effet_academique', 'correction_nom') AND DATEDIFF(NOW(), r.date_depot) > ${SLA_JOURS_PAR_TYPE.effet_academique})
+       )`,
+      roleFilter.params as any[]
+    );
+
+    // Délai moyen de traitement (en jours) des dossiers déjà clôturés, par
+    // type — identifie les goulots d'étranglement du circuit.
+    const [delaiMoyenParType]: any = await pool.execute(
+      `SELECT r.type, AVG(DATEDIFF(r.updated_at, r.date_depot)) as jours_moyen, COUNT(*) as count
+       FROM requete r
+       ${whereRole ? whereRole + ' AND' : 'WHERE'} r.statut = 'CLOTUREE'
+       GROUP BY r.type`,
+      roleFilter.params as any[]
+    );
+
+    // Temps moyen passé dans chaque statut avant la transition suivante —
+    // identifie précisément où les dossiers s'accumulent (ex: "EN_COURS : 4
+    // jours en moyenne" pointe vers la validation comme goulot
+    // d'étranglement), à partir du journal d'audit déjà tracé.
+    const [tempsParEtape]: any = await pool.execute(
+      `SELECT h1.nouveau_statut AS etape,
+              AVG(TIMESTAMPDIFF(HOUR, h1.date, h2.date)) / 24 AS jours_moyen,
+              COUNT(*) AS count
+       FROM historique_statut h1
+       JOIN requete r ON r.id = h1.requete_id
+       JOIN historique_statut h2 ON h2.requete_id = h1.requete_id
+         AND h2.date = (
+           SELECT MIN(h3.date) FROM historique_statut h3
+           WHERE h3.requete_id = h1.requete_id AND h3.date > h1.date
+         )
+       ${whereRole}
+       GROUP BY h1.nouveau_statut
+       ORDER BY jours_moyen DESC`,
+      roleFilter.params as any[]
+    );
+
     res.status(200).json({
       byStatus: statsByStatus,
       byType: statsByType,
       evolution,
+      enRetard: retard[0].total,
+      delaiMoyenParType,
+      tempsParEtape,
     });
   } catch (error) {
     res.status(500).json({ message: 'Erreur serveur', error });
@@ -528,6 +713,10 @@ async function applyTransition(
     commentaire: string;
     studentMessage: string;
     notifyRoles?: string[];
+    /** Rôles à notifier, calculés à partir de la requête (ex: exécutant selon son type). Prioritaire sur notifyRoles. */
+    computeNotifyRoles?: (requete: any) => string[];
+    /** Réassigne service_cible au service qui prend la main après cette transition (ex: validation → exécutant). */
+    computeServiceCible?: (requete: any) => string | undefined;
   }
 ): Promise<void> {
   const { id } = req.params;
@@ -547,7 +736,25 @@ async function applyTransition(
       return;
     }
 
-    await pool.execute('UPDATE requete SET statut = ? WHERE id = ?', [opts.newStatus, id]);
+    // Un rôle staff ne peut agir que sur une requête qui le concerne — même
+    // règle que la lecture (canAccessRequete/isRequeteVisibleToRole), sans
+    // quoi le contrôle de rôle seul laisserait n'importe quel service agir
+    // sur n'importe quel dossier tant que le statut correspond.
+    if (!(await isRequeteVisibleToRole(requete, req.user!.role))) {
+      res.status(403).json({ message: 'Cette requête ne concerne pas votre service' });
+      return;
+    }
+
+    const nouveauServiceCible = opts.computeServiceCible?.(requete);
+    if (nouveauServiceCible) {
+      await pool.execute('UPDATE requete SET statut = ?, service_cible = ? WHERE id = ?', [
+        opts.newStatus,
+        nouveauServiceCible,
+        id,
+      ]);
+    } else {
+      await pool.execute('UPDATE requete SET statut = ? WHERE id = ?', [opts.newStatus, id]);
+    }
 
     await pool.execute(
       'INSERT INTO historique_statut (requete_id, ancien_statut, nouveau_statut, change_par, commentaire) VALUES (?, ?, ?, ?, ?)',
@@ -562,8 +769,9 @@ async function applyTransition(
       await notifyUser(etudiant[0].user_id, Number(id), opts.studentMessage);
     }
 
-    if (opts.notifyRoles) {
-      for (const role of opts.notifyRoles) {
+    const rolesANotifier = opts.computeNotifyRoles?.(requete) ?? opts.notifyRoles;
+    if (rolesANotifier) {
+      for (const role of rolesANotifier) {
         await notifyRole(role, Number(id), `Requête #${id} : ${opts.commentaire}`);
       }
     }
@@ -596,7 +804,22 @@ export const receptionnerRequete = async (req: AuthRequest, res: Response): Prom
       return;
     }
 
-    await pool.execute('UPDATE requete SET statut = ? WHERE id = ?', ['EN_COURS', id]);
+    const nextRole =
+      requete.type === 'effet_academique'
+        ? 'directeur_adjoint'
+        : requete.type === 'correction_nom'
+          ? 'directeur'
+          : 'departement';
+
+    // service_cible est fixé dès la réception : c'est ce qui permet à
+    // buildStaffRoleFilter() de savoir qui possède actuellement le dossier
+    // (sans ça, aucun rôle autre que celui qui vient de réceptionner ne
+    // pouvait plus jamais le voir).
+    await pool.execute('UPDATE requete SET statut = ?, service_cible = ? WHERE id = ?', [
+      'EN_COURS',
+      nextRole,
+      id,
+    ]);
 
     await pool.execute(
       'INSERT INTO historique_statut (requete_id, ancien_statut, nouveau_statut, change_par, commentaire) VALUES (?, ?, ?, ?, ?)',
@@ -614,13 +837,6 @@ export const receptionnerRequete = async (req: AuthRequest, res: Response): Prom
         'Votre requête a été réceptionnée et est en cours de traitement.'
       );
     }
-
-    const nextRole =
-      requete.type === 'effet_academique'
-        ? 'directeur_adjoint'
-        : requete.type === 'correction_nom'
-          ? 'directeur'
-          : 'departement';
 
     if (role !== nextRole) {
       await notifyRole(nextRole, Number(id), `Requête #${id} réceptionnée — traitement requis.`);
@@ -698,6 +914,13 @@ export const acheminerRequete = async (req: AuthRequest, res: Response): Promise
   }
 };
 
+/** Service qui prend en charge l'exécution une fois la requête validée. */
+const EXECUTANT_PAR_TYPE: Record<string, string> = {
+  effet_academique: 'scolarite',
+  correction_nom: 'cellule_informatique',
+  contestation_note: 'cellule_informatique',
+};
+
 export const validerRequete = (req: AuthRequest, res: Response) => {
   const { commentaire } = req.body;
   return applyTransition(req, res, {
@@ -706,7 +929,8 @@ export const validerRequete = (req: AuthRequest, res: Response) => {
     newStatus: 'VALIDEE',
     commentaire: commentaire || 'Dossier validé',
     studentMessage: 'Votre requête a été validée.',
-    notifyRoles: ['scolarite', 'cellule_informatique'],
+    computeNotifyRoles: (requete) => [EXECUTANT_PAR_TYPE[requete.type] ?? 'scolarite'],
+    computeServiceCible: (requete) => EXECUTANT_PAR_TYPE[requete.type],
   });
 };
 

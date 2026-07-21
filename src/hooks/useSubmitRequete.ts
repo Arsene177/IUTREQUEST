@@ -12,13 +12,14 @@ export function useSubmitRequete() {
   const router = useRouter();
   const { notify } = useToast();
 
-  const submit = async (payload: PayloadNouvelleRequete, justificatif: File) => {
+  const submit = async (payload: PayloadNouvelleRequete, justificatifs: File | File[]) => {
     setIsSubmitting(true);
+    const fichiers = Array.isArray(justificatifs) ? justificatifs : [justificatifs];
     try {
       const { requete_id } = await requetesApi.creer(payload);
 
       try {
-        await documentsApi.upload(requete_id, [justificatif]);
+        await documentsApi.upload(requete_id, fichiers);
       } catch (uploadError) {
         // La requête existe déjà : on informe clairement plutôt que de bloquer l'étudiant.
         notify(

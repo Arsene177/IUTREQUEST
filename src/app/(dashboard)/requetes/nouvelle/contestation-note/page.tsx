@@ -4,7 +4,7 @@ import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Header } from "@/components/layout/Header";
 import { RequeteFormShell } from "@/components/requetes/RequeteFormShell";
-import { TextField, TextAreaField, FileDropzone } from "@/components/ui";
+import { TextField, TextAreaField, FileDropzoneMulti } from "@/components/ui";
 import { contestationNoteSchema, type ContestationNoteFormValues, type ContestationNoteFormOutput } from "@/lib/validation";
 import { useSubmitRequete } from "@/hooks/useSubmitRequete";
 import type { PayloadContestationNote } from "@/types";
@@ -18,7 +18,7 @@ export default function ContestationNotePage() {
     formState: { errors },
   } = useForm<ContestationNoteFormValues>({
     resolver: zodResolver(contestationNoteSchema),
-    defaultValues: { priorite: "normale" },
+    defaultValues: { priorite: "normale", justificatifs: [] },
   });
 
   const onSubmit = (values: ContestationNoteFormValues) => {
@@ -31,7 +31,7 @@ export default function ContestationNotePage() {
       note_contestee: validated.note_contestee,
       motif_contestation: validated.motif_contestation,
     };
-    submit(payload, validated.justificatif);
+    submit(payload, validated.justificatifs);
   };
 
   return (
@@ -82,13 +82,13 @@ export default function ContestationNotePage() {
 
         <Controller
           control={control}
-          name="justificatif"
+          name="justificatifs"
           render={({ field }) => (
-            <FileDropzone
-              label="Justificatif (copie corrigée)"
-              value={field.value ?? null}
+            <FileDropzoneMulti
+              label="Justificatifs (copie corrigée)"
+              value={field.value ?? []}
               onChange={field.onChange}
-              error={errors.justificatif?.message}
+              error={errors.justificatifs?.message}
             />
           )}
         />

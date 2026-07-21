@@ -14,6 +14,11 @@ const fichierJustificatifSchema = z
     message: "Format accepté : PDF, JPG ou PNG.",
   });
 
+const fichiersJustificatifsSchema = z
+  .array(fichierJustificatifSchema)
+  .min(1, "Veuillez ajouter au moins un fichier justificatif.")
+  .max(5, "5 fichiers maximum.");
+
 // ============================================================
 // Auth
 // ============================================================
@@ -92,7 +97,7 @@ export const correctionNomSchema = z.object({
     .min(10, "Veuillez expliquer brièvement l'origine de l'erreur (10 caractères min).")
     .max(1000),
   priorite: z.enum(["normale", "urgente"]),
-  justificatif: fichierJustificatifSchema,
+  justificatifs: fichiersJustificatifsSchema,
 });
 export type CorrectionNomFormValues = z.infer<typeof correctionNomSchema>;
 
@@ -115,7 +120,22 @@ export const contestationNoteSchema = z.object({
     .min(30, "Le motif doit faire au moins 30 caractères.")
     .max(1000),
   priorite: z.enum(["normale", "urgente"]),
-  justificatif: fichierJustificatifSchema,
+  justificatifs: fichiersJustificatifsSchema,
 });
 export type ContestationNoteFormValues = z.input<typeof contestationNoteSchema>;
 export type ContestationNoteFormOutput = z.output<typeof contestationNoteSchema>;
+
+// ============================================================
+// Modification d'une requête EN_ATTENTE (mêmes règles que la création,
+// sans le justificatif : les documents déjà joints ne sont pas ré-exigés).
+// ============================================================
+
+export const effetAcademiqueEditSchema = effetAcademiqueSchema.omit({ justificatif: true });
+export type EffetAcademiqueEditFormValues = z.infer<typeof effetAcademiqueEditSchema>;
+
+export const correctionNomEditSchema = correctionNomSchema.omit({ justificatifs: true });
+export type CorrectionNomEditFormValues = z.infer<typeof correctionNomEditSchema>;
+
+export const contestationNoteEditSchema = contestationNoteSchema.omit({ justificatifs: true });
+export type ContestationNoteEditFormValues = z.input<typeof contestationNoteEditSchema>;
+export type ContestationNoteEditFormOutput = z.output<typeof contestationNoteEditSchema>;

@@ -12,6 +12,9 @@ interface RequeteFormShellProps {
   onSubmit: () => void;
   isSubmitting: boolean;
   submitLabel?: string;
+  /** Cible du lien "retour"/"annuler" — /dashboard par défaut, ou le détail d'une requête en édition. */
+  backHref?: string;
+  backLabel?: string;
 }
 
 export function RequeteFormShell({
@@ -21,16 +24,18 @@ export function RequeteFormShell({
   onSubmit,
   isSubmitting,
   submitLabel = "Soumettre la requête",
+  backHref = "/dashboard",
+  backLabel = "Mes requêtes",
 }: RequeteFormShellProps) {
   return (
     <main className="px-4 sm:px-8 py-6 sm:py-8 max-w-2xl">
       <nav className="flex items-center gap-1.5 text-sm text-[var(--color-ink-muted)] mb-6">
         <Link
-          href="/dashboard"
+          href={backHref}
           className="flex items-center gap-1 font-bold text-[var(--color-ink)] hover:opacity-70 transition"
         >
           <ChevronLeft size={18} />
-          Mes requêtes
+          {backLabel}
         </Link>
         <span>&gt;</span>
         <span>{title.toLowerCase()}</span>
@@ -52,7 +57,7 @@ export function RequeteFormShell({
           {children}
 
           <div className="flex flex-col sm:flex-row justify-end gap-3 pt-2">
-            <Link href="/dashboard" className="sm:order-1">
+            <Link href={backHref} className="sm:order-1">
               <Button type="button" variant="secondary" disabled={isSubmitting} fullWidth>
                 Annuler
               </Button>

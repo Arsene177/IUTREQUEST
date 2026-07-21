@@ -3,15 +3,15 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
-import { ChevronLeft } from "lucide-react";
+import { ChevronLeft, FileText, Download } from "lucide-react";
 import { Header } from "@/components/layout/Header";
 import { ProgressTimeline } from "@/components/requetes/ProgressTimeline";
 import { Card, Button, StatusBadge, Spinner, FileDropzone } from "@/components/ui";
-import { requetesApi } from "@/lib/api/requetes";
+import { requetesApi, documentsApi } from "@/lib/api/requetes";
 import { getApiErrorMessage } from "@/lib/api-client";
 import { useToast } from "@/context/ToastContext";
 import { useAuth } from "@/context/AuthContext";
-import { formatDate, nomComplet } from "@/lib/format";
+import { formatDate, formatTailleFichier, nomComplet } from "@/lib/format";
 import { TYPE_REQUETE_LABELS } from "@/lib/constants";
 import type { RequeteDetailResponse } from "@/types";
 
@@ -108,7 +108,7 @@ export default function RequeteDetailPage() {
               <div className="flex items-start justify-between gap-4 flex-wrap">
                 <div>
                   <p className="text-sm font-bold text-[var(--color-ink-muted)] uppercase">
-                    Requête #{detail.requete.id}
+                    Requête #{detail.requete.numero ?? detail.requete.id}
                   </p>
                   <h1 className="text-2xl font-extrabold text-[var(--color-ink)] mt-1">
                     {TYPE_REQUETE_LABELS[detail.requete.type]}
@@ -147,7 +147,13 @@ export default function RequeteDetailPage() {
               </dl>
 
               {detail.requete.statut === "EN_ATTENTE" && (
-                <div className="mt-6 pt-6 border-t border-[var(--color-cream-line)]">
+                <div className="mt-6 pt-6 border-t border-[var(--color-cream-line)] flex flex-wrap gap-3">
+                  <Button
+                    variant="secondary"
+                    onClick={() => router.push(`/requetes/${requeteId}/modifier`)}
+                  >
+                    Modifier la requête
+                  </Button>
                   <Button variant="danger" onClick={handleAnnuler} isLoading={isAnnulation}>
                     Annuler la requête
                   </Button>
@@ -158,6 +164,48 @@ export default function RequeteDetailPage() {
             <Card className="px-8 py-7">
               <h2 className="font-extrabold text-[var(--color-ink)] mb-5">Progression</h2>
               <ProgressTimeline statut={detail.requete.statut} historique={detail.historique} />
+            </Card>
+
+            <Card className="px-8 py-7">
+              <h2 className="font-extrabold text-[var(--color-ink)] mb-4">Documents joints</h2>
+              {detail.documents.length === 0 ? (
+                <p className="text-sm text-[var(--color-ink-faint)]">
+                  Aucun document joint pour le moment.
+                </p>
+              ) : (
+                <ul className="flex flex-col gap-2">
+                  {detail.documents.map((doc) => (
+                    <li
+                      key={doc.id}
+                      className="flex items-center justify-between gap-3 rounded-[var(--radius-control)] bg-[var(--color-canvas-soft)] px-4 py-3"
+                    >
+                      <div className="flex items-center gap-3 min-w-0">
+                        <FileText size={20} className="text-[var(--color-brand)] flex-shrink-0" />
+                        <div className="min-w-0">
+                          <p className="text-sm font-medium truncate">{doc.nom}</p>
+                          <p className="text-xs text-[var(--color-ink-faint)]">
+                            {formatTailleFichier(doc.taille)}
+                          </p>
+                        </div>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() =>
+                          documentsApi
+                            .telecharger(requeteId, doc.id, doc.nom)
+                            .catch((err) =>
+                              notify(getApiErrorMessage(err, "Impossible de télécharger ce document."), "error")
+                            )
+                        }
+                        aria-label={`Télécharger ${doc.nom}`}
+                        className="text-[var(--color-brand)] hover:text-[var(--color-brand-dark)] transition flex-shrink-0"
+                      >
+                        <Download size={18} />
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              )}
             </Card>
 
             {detail.requete.statut === "ATTENTE_INFO" && (

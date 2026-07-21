@@ -4,6 +4,7 @@ import {
   getMesRequetes,
   getRequeteById,
   annulerRequete,
+  modifierRequete,
   getRequetesStaff,
   getStats,
   receptionnerRequete,
@@ -43,7 +44,12 @@ router.get(
 );
 router.put('/staff/:id/acheminer', authMiddleware, roleMiddleware(['secretariat', 'departement']), acheminerRequete);
 router.put('/staff/:id/valider', authMiddleware, roleMiddleware(['directeur', 'directeur_adjoint', 'departement']), validerRequete);
-router.put('/staff/:id/rejeter', authMiddleware, roleMiddleware(['directeur', 'directeur_adjoint', 'departement']), rejeterRequete);
+router.put(
+  '/staff/:id/rejeter',
+  authMiddleware,
+  roleMiddleware(['secretariat', 'directeur', 'directeur_adjoint', 'departement', 'scolarite']),
+  rejeterRequete
+);
 router.put('/staff/:id/demander-info', authMiddleware, roleMiddleware(STAFF_ROLES), demanderInfoRequete);
 router.put('/staff/:id/executer', authMiddleware, roleMiddleware(['cellule_informatique', 'scolarite']), executerRequete);
 router.put(
@@ -57,6 +63,7 @@ router.put(
 router.post('/', authMiddleware, roleMiddleware(['etudiant']), creerRequete);
 router.get('/me', authMiddleware, roleMiddleware(['etudiant']), getMesRequetes);
 router.get('/:id', authMiddleware, roleMiddleware(['etudiant', ...STAFF_ROLES]), getRequeteById);
+router.put('/:id', authMiddleware, roleMiddleware(['etudiant']), modifierRequete);
 router.put('/:id/annuler', authMiddleware, roleMiddleware(['etudiant']), annulerRequete);
 router.put('/:id/completer-info', authMiddleware, roleMiddleware(['etudiant']), completerInfoRequete);
 
