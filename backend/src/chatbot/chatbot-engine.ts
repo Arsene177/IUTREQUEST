@@ -70,11 +70,11 @@ export const processMessage = async (
   // Global reset commands — doivent fonctionner depuis n'importe quel état
   // (FAQ_SEARCH, GUIDE_*, etc.), pas seulement depuis IDENTIFY_NEED. On
   // court-circuite donc le state machine avec un retour immédiat au menu.
+  // Matching souple (includes) plutôt qu'égalité stricte : le bouton envoie
+  // "Retour au menu" mais un utilisateur peut aussi taper "retour menu",
+  // "je veux revenir au menu", etc.
   if (
-    lowerMessage === 'menu' ||
-    lowerMessage === 'recommencer' ||
-    lowerMessage === 'accueil' ||
-    lowerMessage === 'retour au menu'
+    containsKeywords(lowerMessage, ['menu', 'recommencer', 'accueil', 'retour au', 'revenir au'])
   ) {
     session.state = 'IDENTIFY_NEED';
     botResponse = getMenuResponse();
@@ -106,7 +106,14 @@ export const processMessage = async (
           content: "Posez-moi votre question concernant les procédures, délais ou contacts, et je chercherai dans notre FAQ."
         };
         session.state = 'FAQ_SEARCH';
-      } else if (lowerMessage.includes('effet') || lowerMessage.includes('académique') || lowerMessage.includes('absence')) {
+      } else if (
+        lowerMessage.includes('effet') ||
+        lowerMessage.includes('académique') ||
+        lowerMessage.includes('attestation') ||
+        lowerMessage.includes('relevé') ||
+        lowerMessage.includes('certificat') ||
+        lowerMessage.includes('diplôme')
+      ) {
         session.state = 'GUIDE_EFFET_ACADEMIQUE';
         botResponse = getGuideEffetAcademique();
       } else if (lowerMessage.includes('nom') || lowerMessage.includes('correction')) {
@@ -240,7 +247,7 @@ function getMenuResponse(): ChatMessage {
 function getGuideEffetAcademique(): ChatMessage {
   return {
     role: 'bot',
-    content: "Une requête d'Effet académique permet de justifier une absence à un cours ou examen. Vous aurez besoin de fournir un justificatif (ex: certificat médical) dans un délai de 48h. Souhaitez-vous remplir le formulaire maintenant ?",
+    content: "Une requête d'Effet académique permet d'obtenir un document officiel : attestation de scolarité, relevé de notes, certificat ou autre document. Précisez le document souhaité et l'année académique concernée. Souhaitez-vous remplir le formulaire maintenant ?",
     quickReplies: ['Remplir le formulaire', 'Retour au menu']
   };
 }
