@@ -244,7 +244,10 @@ export default function RequeteDetail() {
                 )}
                 {showExecuter && (
                   <button onClick={() => handleTransition('executer')} disabled={isProcessing} className="flex items-center space-x-2 bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg font-medium transition-colors disabled:opacity-50">
-                    <Play className="w-4 h-4" /> <span>Mettre en exécution</span>
+                    <Play className="w-4 h-4" />
+                    <span>
+                      {requete.type === 'effet_academique' ? 'Lancer le traitement manuel' : 'Mettre en exécution'}
+                    </span>
                   </button>
                 )}
                 {showCloturer && (

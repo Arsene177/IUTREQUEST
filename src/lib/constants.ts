@@ -75,17 +75,27 @@ export const TYPE_REQUETE_DESCRIPTIONS = {
   contestation_note: "Contestation d’une note ou d’un résultat obtenu à un examen.",
 } as const;
 
-import type { StatutRequete } from "@/types";
+import type { StatutRequete, TypeRequete } from "@/types";
 
 export const TIMELINE_STEPS: ReadonlyArray<{
   key: string;
   label: string;
+  /** Libellé spécifique à un type de requête, prioritaire sur `label` (ex: la
+   * "clôture" d'un effet académique est une recherche physique manuelle par
+   * la scolarité, cf. Figure 13 du cahier des charges — pas juste une case à
+   * cocher comme pour les deux autres types). */
+  labelParType?: Partial<Record<TypeRequete, string>>;
   statuts: readonly StatutRequete[];
 }> = [
   { key: "depot", label: "Dépot de la requête", statuts: ["EN_ATTENTE", "EN_COURS", "ATTENTE_INFO", "VALIDEE", "EN_EXECUTION", "REJETEE", "CLOTUREE"] },
   { key: "traitement", label: "Traitement par le secrétariat", statuts: ["EN_COURS", "ATTENTE_INFO", "VALIDEE", "EN_EXECUTION", "REJETEE", "CLOTUREE"] },
   { key: "validation", label: "Validation par la direction", statuts: ["VALIDEE", "EN_EXECUTION", "REJETEE", "CLOTUREE"] },
-  { key: "cloture", label: "Exécution et clôture", statuts: ["EN_EXECUTION", "CLOTUREE"] },
+  {
+    key: "cloture",
+    label: "Exécution et clôture",
+    labelParType: { effet_academique: "Traitement manuel — recherche physique de documents" },
+    statuts: ["EN_EXECUTION", "CLOTUREE"],
+  },
 ];
 
 export const FILTRE_LABELS: Record<StatutFiltre, string> = {

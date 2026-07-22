@@ -1,14 +1,16 @@
 import { Check } from "lucide-react";
 import { TIMELINE_STEPS } from "@/lib/constants";
-import type { HistoriqueStatutEntry, StatutRequete } from "@/types";
+import type { HistoriqueStatutEntry, StatutRequete, TypeRequete } from "@/types";
 import { formatDate, nomComplet } from "@/lib/format";
 
 interface ProgressTimelineProps {
   statut: StatutRequete;
   historique?: HistoriqueStatutEntry[];
+  /** Permet d'afficher un libellé d'étape spécifique au type (cf. labelParType). */
+  type?: TypeRequete;
 }
 
-export function ProgressTimeline({ statut, historique }: ProgressTimelineProps) {
+export function ProgressTimeline({ statut, historique, type }: ProgressTimelineProps) {
   // Chaque étape liste tous les statuts "au moins atteints" (cumulatif) :
   // un statut avancé (ex: CLOTUREE) apparaît donc dans les 4 étapes à la
   // fois. findIndex() renvoie la PREMIÈRE étape qui matche — toujours
@@ -88,7 +90,7 @@ export function ProgressTimeline({ statut, historique }: ProgressTimelineProps) 
                   isDone || isActive ? "text-[var(--color-ink)]" : "text-[var(--color-ink-faint)]"
                 }`}
               >
-                {step.label}
+                {(type && step.labelParType?.[type]) || step.label}
               </p>
               {isActive && (
                 <p className="text-xs text-[var(--color-ink-faint)] mt-0.5">Étape actuelle</p>

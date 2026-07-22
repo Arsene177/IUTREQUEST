@@ -163,7 +163,11 @@ export default function RequeteDetailPage() {
 
             <Card className="px-8 py-7">
               <h2 className="font-extrabold text-[var(--color-ink)] mb-5">Progression</h2>
-              <ProgressTimeline statut={detail.requete.statut} historique={detail.historique} />
+              <ProgressTimeline
+                statut={detail.requete.statut}
+                historique={detail.historique}
+                type={detail.requete.type}
+              />
             </Card>
 
             <Card className="px-8 py-7">
