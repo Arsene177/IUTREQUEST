@@ -2,10 +2,10 @@
 
 import StaffLayout from "@/components/layout/StaffLayout";
 import { Suspense, useEffect, useState } from "react";
-import { fetchStaffRequetes, transitionRequete, RequeteListItem } from "@/lib/staffService";
+import { fetchStaffRequetes, transitionRequete, supprimerRequeteStaff, RequeteListItem } from "@/lib/staffService";
 import { useAuth } from "@/context/AuthContext";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Filter, Search, AlertCircle, AlertTriangle, CheckCircle, XCircle, Eye, ChevronLeft, ChevronRight } from "lucide-react";
+import { Filter, Search, AlertCircle, AlertTriangle, CheckCircle, XCircle, Trash2, Eye, ChevronLeft, ChevronRight } from "lucide-react";
 import Link from "next/link";
 import { TYPE_CONFIG, TYPES_VISIBLES_PAR_ROLE } from "@/lib/constants";
 
@@ -23,6 +23,7 @@ const ACTIONS_GROUPEES: { action: string; label: string; needsMotif?: boolean }[
   { action: "valider", label: "Valider" },
   { action: "rejeter", label: "Rejeter", needsMotif: true },
   { action: "cloturer", label: "Clôturer" },
+  { action: "supprimer", label: "Supprimer" },
 ];
 
 export default function StaffRequetesListPage() {
@@ -117,11 +118,12 @@ function StaffRequetesList() {
       if (!saisie?.trim()) return;
       motif = saisie.trim();
     }
-    if (
-      !window.confirm(
-        `Appliquer l'action "${action}" à ${selection.size} requête(s) sélectionnée(s) ?`
-      )
-    ) {
+
+    const messageConfirmation =
+      action === "supprimer"
+        ? `⚠️ Vous êtes sur le point de supprimer définitivement ${selection.size} requête(s) — historique et documents inclus. Cette action est irréversible. Continuer ?`
+        : `Appliquer l'action "${action}" à ${selection.size} requête(s) sélectionnée(s) ?`;
+    if (!window.confirm(messageConfirmation)) {
       return;
     }
 
@@ -135,7 +137,9 @@ function StaffRequetesList() {
           : undefined;
 
     const results = await Promise.allSettled(
-      Array.from(selection).map((id) => transitionRequete(id, action, body))
+      Array.from(selection).map((id) =>
+        action === "supprimer" ? supprimerRequeteStaff(id) : transitionRequete(id, action, body)
+      )
     );
     const reussies = results.filter((r) => r.status === "fulfilled").length;
     const echouees = results.length - reussies;
@@ -285,9 +289,19 @@ function StaffRequetesList() {
                   type="button"
                   disabled={isBulkRunning}
                   onClick={() => handleActionGroupee(action, needsMotif)}
-                  className="flex items-center gap-1.5 bg-white/10 hover:bg-white/20 text-white text-sm font-medium px-3 py-1.5 rounded-lg transition-colors disabled:opacity-50"
+                  className={`flex items-center gap-1.5 text-sm font-medium px-3 py-1.5 rounded-lg transition-colors disabled:opacity-50 ${
+                    action === "supprimer"
+                      ? "bg-red-600 hover:bg-red-700 text-white"
+                      : "bg-white/10 hover:bg-white/20 text-white"
+                  }`}
                 >
-                  {action === "rejeter" ? <XCircle className="w-4 h-4" /> : <CheckCircle className="w-4 h-4" />}
+                  {action === "supprimer" ? (
+                    <Trash2 className="w-4 h-4" />
+                  ) : action === "rejeter" ? (
+                    <XCircle className="w-4 h-4" />
+                  ) : (
+                    <CheckCircle className="w-4 h-4" />
+                  )}
                   {label}
                 </button>
               ))}

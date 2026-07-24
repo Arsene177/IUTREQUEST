@@ -4,7 +4,7 @@ import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Header } from "@/components/layout/Header";
 import { RequeteFormShell } from "@/components/requetes/RequeteFormShell";
-import { TextField, TextAreaField, FileDropzoneMulti } from "@/components/ui";
+import { TextField, TextAreaField, FileDropzone, FileDropzoneMulti } from "@/components/ui";
 import { correctionNomSchema, type CorrectionNomFormValues } from "@/lib/validation";
 import { useSubmitRequete } from "@/hooks/useSubmitRequete";
 import type { PayloadCorrectionNom } from "@/types";
@@ -29,7 +29,7 @@ export default function CorrectionNomPage() {
       nouveau_nom: values.nouveau_nom,
       motif: values.motif,
     };
-    submit(payload, values.justificatifs);
+    submit(payload, [values.fiche_requete, ...values.justificatifs]);
   };
 
   return (
@@ -60,6 +60,19 @@ export default function CorrectionNomPage() {
           placeholder="Expliquez brièvement l'origine de l'erreur……"
           error={errors.motif?.message}
           {...register("motif")}
+        />
+
+        <Controller
+          control={control}
+          name="fiche_requete"
+          render={({ field }) => (
+            <FileDropzone
+              label="Fiche de requête"
+              value={field.value ?? null}
+              onChange={field.onChange}
+              error={errors.fiche_requete?.message}
+            />
+          )}
         />
 
         <Controller

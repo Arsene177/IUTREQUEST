@@ -12,7 +12,7 @@ async function startServer() {
     console.log('Connexion MySQL établie');
 
     app.listen(PORT, () => {
-      console.log(`Serveur JANNGO démarré sur http://localhost:${PORT}`);
+      console.log(`Serveur IutRequest démarré sur http://localhost:${PORT}`);
     });
   } catch (error) {
     console.error('Erreur connexion MySQL:', error);

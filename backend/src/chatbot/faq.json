@@ -5,14 +5,14 @@
     "answer": "Les délais varient selon le type de requête. En général, comptez 3 à 5 jours ouvrables pour un effet académique ou une correction de nom. Une contestation de note prend généralement plus longtemps (1 à 2 semaines) car elle nécessite l'avis de l'enseignant concerné avant toute correction."
   },
   {
-    "keywords": ["contact", "contacter", "téléphone", "email", "joindre"],
+    "keywords": ["contact", "contacter", "téléphone", "email", "joindre l'administration", "joindre le secrétariat"],
     "question": "Comment puis-je contacter l'administration de l'IUT ?",
     "answer": "Vous pouvez contacter le secrétariat par email à l'adresse secretariat@iut.edu, par téléphone au 01 23 45 67 89, ou vous présenter à l'accueil du bâtiment principal entre 8h30 et 17h00."
   },
   {
-    "keywords": ["documents", "pièces justificatives", "justificatif", "papier", "format", "taille", "pdf", "jpg", "png", "combien de fichiers", "plusieurs fichiers"],
+    "keywords": ["documents", "pièces requises", "pièces justificatives", "justificatif", "papier", "format", "taille", "pdf", "jpg", "png", "combien de fichiers", "plusieurs fichiers", "fiche de requête", "quels documents"],
     "question": "Quels documents sont nécessaires pour mes requêtes ?",
-    "answer": "Cela dépend de la requête. Pour un effet académique, un justificatif médical ou professionnel est souvent requis. Pour une correction de nom, une pièce d'identité officielle est nécessaire. Pour une contestation de note, la copie corrigée si vous l'avez. Vous pouvez joindre jusqu'à 5 fichiers par requête, au format PDF, JPG ou PNG, 5 Mo maximum chacun."
+    "answer": "Pour chaque requête, deux pièces sont demandées : la fiche de requête, et un ou plusieurs justificatifs selon le cas. Pour un effet académique : votre profil étudiant ou un reçu de paiement. Pour une correction de nom : une CNI ou un acte de naissance. Pour une contestation de note : la copie corrigée si vous l'avez. Vous pouvez joindre jusqu'à 5 fichiers justificatifs par requête, au format PDF, JPG ou PNG, 5 Mo maximum chacun."
   },
   {
     "keywords": ["attestation", "relevé", "relevé de notes", "certificat", "diplôme", "effet académique", "document officiel"],
@@ -90,8 +90,8 @@
     "answer": "Posez votre question directement, ou utilisez les boutons de suggestion. À tout moment, tapez « menu » ou cliquez sur « Retour au menu » pour revenir aux options principales. Le bouton « Réinitialiser » en haut du chat efface l'historique de la conversation."
   },
   {
-    "keywords": ["janngo", "iutrequest", "qu'est-ce que", "à quoi sert cette application", "c'est quoi ce site"],
-    "question": "Qu'est-ce que JANNGO / IUTRequest ?",
+    "keywords": ["iutrequest", "janngo", "qu'est-ce que", "à quoi sert cette application", "c'est quoi ce site"],
+    "question": "Qu'est-ce que IutRequest ?",
     "answer": "C'est la plateforme officielle de gestion des requêtes administratives de l'IUT : elle vous permet de soumettre, suivre et gérer vos demandes (effets académiques, corrections de nom, contestations de note) sans avoir à vous déplacer au secrétariat pour chaque étape."
   },
   {
@@ -103,5 +103,10 @@
     "keywords": ["attente info", "information complémentaire", "document manquant", "compléter mon dossier"],
     "question": "Ma requête est en « Attente d'information », que dois-je faire ?",
     "answer": "Le service en charge de votre dossier a besoin d'un document supplémentaire. Ouvrez le détail de votre requête : un encart « Information complémentaire requise » vous permet d'envoyer directement le document manquant, ce qui remet automatiquement le dossier en traitement."
+  },
+  {
+    "keywords": ["comment faire une requête", "comment soumettre", "comment créer une requête", "faire une demande", "déposer une requête", "nouvelle requête"],
+    "question": "Comment faire une requête ?",
+    "answer": "Depuis votre tableau de bord, cliquez sur « Nouvelle requête », choisissez le type (effet académique, correction de nom ou contestation de note), remplissez le formulaire et joignez la fiche de requête ainsi que le(s) justificatif(s) demandé(s), puis soumettez. Vous pouvez aussi me dire directement quel type de requête vous voulez faire et je vous guide."
   }
 ]

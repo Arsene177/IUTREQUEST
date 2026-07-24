@@ -94,6 +94,7 @@ export default function ChatbotWidget() {
         body: JSON.stringify({
           sessionId,
           message: text,
+          userId: user?.id,
         }),
       });
 

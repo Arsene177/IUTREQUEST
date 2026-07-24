@@ -4,9 +4,10 @@ import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Header } from "@/components/layout/Header";
 import { RequeteFormShell } from "@/components/requetes/RequeteFormShell";
-import { TextField, TextAreaField, SelectField, FileDropzone } from "@/components/ui";
+import { TextAreaField, SelectField, FileDropzone } from "@/components/ui";
 import { effetAcademiqueSchema, type EffetAcademiqueFormValues } from "@/lib/validation";
 import { useSubmitRequete } from "@/hooks/useSubmitRequete";
+import { ANNEES_ACADEMIQUES } from "@/lib/constants";
 import type { PayloadEffetAcademique } from "@/types";
 
 const TYPE_DOCUMENT_OPTIONS = [
@@ -15,6 +16,11 @@ const TYPE_DOCUMENT_OPTIONS = [
   { value: "certificat", label: "Certificat" },
   { value: "autre", label: "Autre" },
 ];
+
+const ANNEE_ACADEMIQUE_OPTIONS = ANNEES_ACADEMIQUES.map((annee) => ({
+  value: annee,
+  label: annee,
+}));
 
 export default function EffetAcademiquePage() {
   const { submit, isSubmitting } = useSubmitRequete();
@@ -33,10 +39,10 @@ export default function EffetAcademiquePage() {
       type: "effet_academique",
       priorite: values.priorite,
       type_document: values.type_document,
-      annee_academique: `${values.annee_academique_debut}-${values.annee_academique_fin}`,
+      annee_academique: values.annee_academique,
       motif: values.motif || undefined,
     };
-    submit(payload, values.justificatif);
+    submit(payload, [values.fiche_requete, values.justificatif]);
   };
 
   return (
@@ -56,29 +62,32 @@ export default function EffetAcademiquePage() {
           {...register("type_document")}
         />
 
-        <div>
-          <p className="text-sm font-bold text-[var(--color-ink)] mb-1.5">
-            Année académique (année d&apos;obtention de l&apos;effet)
-          </p>
-          <div className="grid grid-cols-2 gap-4">
-            <TextField
-              placeholder="Ex: 2023"
-              error={errors.annee_academique_debut?.message}
-              {...register("annee_academique_debut")}
-            />
-            <TextField
-              placeholder="Ex: 2024"
-              error={errors.annee_academique_fin?.message}
-              {...register("annee_academique_fin")}
-            />
-          </div>
-        </div>
+        <SelectField
+          label="Année académique (année d'obtention de l'effet)"
+          placeholder="Sélectionner une année académique…"
+          options={ANNEE_ACADEMIQUE_OPTIONS}
+          error={errors.annee_academique?.message}
+          {...register("annee_academique")}
+        />
 
         <TextAreaField
           label="Description"
-          placeholder="Expliquer brièvement votre demande……"
+          placeholder="Expliquer brièvement votre demande…"
           error={errors.motif?.message}
           {...register("motif")}
+        />
+
+        <Controller
+          control={control}
+          name="fiche_requete"
+          render={({ field }) => (
+            <FileDropzone
+              label="Fiche de requête"
+              value={field.value ?? null}
+              onChange={field.onChange}
+              error={errors.fiche_requete?.message}
+            />
+          )}
         />
 
         <Controller

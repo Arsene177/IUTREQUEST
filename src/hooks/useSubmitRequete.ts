@@ -12,9 +12,9 @@ export function useSubmitRequete() {
   const router = useRouter();
   const { notify } = useToast();
 
-  const submit = async (payload: PayloadNouvelleRequete, justificatifs: File | File[]) => {
+  const submit = async (payload: PayloadNouvelleRequete, documents: File | File[]) => {
     setIsSubmitting(true);
-    const fichiers = Array.isArray(justificatifs) ? justificatifs : [justificatifs];
+    const fichiers = Array.isArray(documents) ? documents : [documents];
     try {
       const { requete_id } = await requetesApi.creer(payload);
 
@@ -23,10 +23,10 @@ export function useSubmitRequete() {
       } catch (uploadError) {
         // La requête existe déjà : on informe clairement plutôt que de bloquer l'étudiant.
         notify(
-          `Votre requête #${requete_id} a bien été créée, mais l'envoi du justificatif a échoué (${getApiErrorMessage(
+          `Votre requête #${requete_id} a bien été créée, mais l'envoi des documents a échoué (${getApiErrorMessage(
             uploadError,
             "erreur réseau"
-          )}). Vous pourrez le renvoyer depuis le détail de la requête.`,
+          )}). Vous pourrez les renvoyer depuis le détail de la requête.`,
           "error"
         );
         router.push("/dashboard");

@@ -12,6 +12,7 @@ import {
 } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { IutRequestLogo } from '@/components/ui/IutRequestLogo';
 
 export default function Sidebar() {
     const { user, logout } = useAuth();
@@ -67,10 +68,7 @@ export default function Sidebar() {
 
                 {/* Logo */}
                 <div className="flex items-center gap-3 px-6 py-5 border-b border-gray-100 dark:border-gray-800">
-                    <div className="w-9 h-9 bg-blue-600 rounded-lg flex items-center justify-center">
-                        <span className="text-white font-bold text-lg">J</span>
-                    </div>
-                    <span className="text-xl font-bold text-blue-600">JANNGO</span>
+                    <IutRequestLogo size="sm" />
                 </div>
 
                 {/* Profil */}

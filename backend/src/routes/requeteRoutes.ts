@@ -16,6 +16,7 @@ import {
   cloturerRequete,
   completerInfoRequete,
   exporterContestationCsv,
+  supprimerRequete,
 } from '../controllers/requeteController';
 import authMiddleware from '../middlewares/authMiddleware';
 import roleMiddleware from '../middlewares/roleMiddleware';
@@ -58,6 +59,7 @@ router.put(
   roleMiddleware(['scolarite', 'secretariat', 'cellule_informatique']),
   cloturerRequete
 );
+router.delete('/staff/:id', authMiddleware, roleMiddleware(STAFF_ROLES), supprimerRequete);
 
 // Student Routes
 router.post('/', authMiddleware, roleMiddleware(['etudiant']), creerRequete);

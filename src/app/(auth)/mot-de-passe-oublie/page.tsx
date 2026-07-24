@@ -64,7 +64,7 @@ export default function MotDePasseOubliePage() {
             )}
 
             <TextField
-              label="Nom(s) et prénom(s)"
+              label="Nom(s)"
               placeholder="Nom de l'étudiant"
               error={errors.nom?.message}
               {...register("nom")}

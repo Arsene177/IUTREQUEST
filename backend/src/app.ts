@@ -24,7 +24,7 @@ app.use('/notifications', notificationRoutes);
 
 // Route de test
 app.get('/', (req, res) => {
-  res.json({ message: 'JANNGO API is running 🚀' });
+  res.json({ message: 'IutRequest API is running 🚀' });
 });
 
 export default app;

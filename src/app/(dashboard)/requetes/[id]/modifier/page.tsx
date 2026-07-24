@@ -18,6 +18,7 @@ import {
 import { requetesApi } from "@/lib/api/requetes";
 import { getApiErrorMessage } from "@/lib/api-client";
 import { useToast } from "@/context/ToastContext";
+import { ANNEES_ACADEMIQUES } from "@/lib/constants";
 import type { RequeteDetailResponse } from "@/types";
 
 const TYPE_DOCUMENT_OPTIONS = [
@@ -26,6 +27,11 @@ const TYPE_DOCUMENT_OPTIONS = [
   { value: "certificat", label: "Certificat" },
   { value: "autre", label: "Autre" },
 ];
+
+const ANNEE_ACADEMIQUE_OPTIONS = ANNEES_ACADEMIQUES.map((annee) => ({
+  value: annee,
+  label: annee,
+}));
 
 interface EditFormProps {
   requeteId: number;
@@ -43,7 +49,6 @@ function EditEffetAcademique({ requeteId, detail, backHref }: EditFormProps) {
   const router = useRouter();
   const { notify } = useToast();
   const details = detail.details as DetailsEffetAcademique | null;
-  const [anneeDebut, anneeFin] = String(details?.annee_academique ?? "").split("-");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const {
     register,
@@ -53,8 +58,7 @@ function EditEffetAcademique({ requeteId, detail, backHref }: EditFormProps) {
     resolver: zodResolver(effetAcademiqueEditSchema),
     defaultValues: {
       type_document: details?.type_document,
-      annee_academique_debut: anneeDebut ?? "",
-      annee_academique_fin: anneeFin ?? "",
+      annee_academique: details?.annee_academique ?? "",
       motif: details?.motif ?? "",
       priorite: detail.requete.priorite,
     },
@@ -66,7 +70,7 @@ function EditEffetAcademique({ requeteId, detail, backHref }: EditFormProps) {
       await requetesApi.modifier(requeteId, {
         priorite: values.priorite,
         type_document: values.type_document,
-        annee_academique: `${values.annee_academique_debut}-${values.annee_academique_fin}`,
+        annee_academique: values.annee_academique,
         motif: values.motif || undefined,
       });
       notify("Requête modifiée avec succès.", "success");
@@ -94,21 +98,12 @@ function EditEffetAcademique({ requeteId, detail, backHref }: EditFormProps) {
         error={errors.type_document?.message}
         {...register("type_document")}
       />
-      <div>
-        <p className="text-sm font-bold text-[var(--color-ink)] mb-1.5">Année académique</p>
-        <div className="grid grid-cols-2 gap-4">
-          <TextField
-            placeholder="Ex: 2023"
-            error={errors.annee_academique_debut?.message}
-            {...register("annee_academique_debut")}
-          />
-          <TextField
-            placeholder="Ex: 2024"
-            error={errors.annee_academique_fin?.message}
-            {...register("annee_academique_fin")}
-          />
-        </div>
-      </div>
+      <SelectField
+        label="Année académique"
+        options={ANNEE_ACADEMIQUE_OPTIONS}
+        error={errors.annee_academique?.message}
+        {...register("annee_academique")}
+      />
       <TextAreaField label="Description" error={errors.motif?.message} {...register("motif")} />
     </RequeteFormShell>
   );

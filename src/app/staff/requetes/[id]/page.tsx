@@ -2,13 +2,18 @@
 
 import StaffLayout from "@/components/layout/StaffLayout";
 import { useEffect, useState } from "react";
-import { fetchRequeteDetails, transitionRequete, exporterContestationCsv, telechargerDocument } from "@/lib/staffService";
+import { fetchRequeteDetails, transitionRequete, supprimerRequeteStaff, exporterContestationCsv, telechargerDocument } from "@/lib/staffService";
+import { documentsApi } from "@/lib/api/requetes";
 import { useAuth } from "@/context/AuthContext";
 import { useRouter, useParams } from "next/navigation";
-import { AlertCircle, AlertTriangle, ArrowLeft, CheckCircle, Clock, XCircle, Play, Info, Download, FileText } from "lucide-react";
+import { AlertCircle, AlertTriangle, ArrowLeft, CheckCircle, Clock, XCircle, Play, Info, Download, Upload, FileText, Trash2 } from "lucide-react";
 import Link from "next/link";
 import { CIBLES_ACHEMINEMENT } from "@/lib/constants";
+import { FileDropzoneMulti } from "@/components/ui";
 import type { DocumentEntry } from "@/types";
+
+/** Rôles staff autorisés à déposer un document (miroir de ROLES_STAFF_UPLOAD backend). */
+const ROLES_STAFF_UPLOAD = ["cellule_informatique"];
 
 export default function RequeteDetail() {
   const { user, isLoading } = useAuth();
@@ -18,6 +23,8 @@ export default function RequeteDetail() {
   const [error, setError] = useState<string>("");
   const [success, setSuccess] = useState<string>("");
   const [isProcessing, setIsProcessing] = useState(false);
+  const [fichiersAEnvoyer, setFichiersAEnvoyer] = useState<File[]>([]);
+  const [isUploading, setIsUploading] = useState(false);
 
   const fetchDetails = async () => {
     try {
@@ -77,6 +84,42 @@ export default function RequeteDetail() {
       await exporterContestationCsv(params.id as string);
     } catch (err: any) {
       setError(err.response?.data?.message || "Erreur lors de l'export du CSV");
+    }
+  };
+
+  const handleUploadDocument = async () => {
+    if (fichiersAEnvoyer.length === 0) return;
+    setIsUploading(true);
+    setError("");
+    setSuccess("");
+    try {
+      await documentsApi.upload(Number(params.id), fichiersAEnvoyer);
+      setFichiersAEnvoyer([]);
+      setSuccess("Document déposé avec succès — visible par l'étudiant et le service suivant.");
+      await fetchDetails();
+    } catch (err: any) {
+      setError(err.response?.data?.message || "Erreur lors du dépôt du document");
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
+  const handleSupprimer = async () => {
+    if (
+      !window.confirm(
+        `⚠️ Vous êtes sur le point de supprimer définitivement la requête #${params.id} — historique et documents inclus. Cette action est irréversible. Continuer ?`
+      )
+    ) {
+      return;
+    }
+    setIsProcessing(true);
+    setError("");
+    try {
+      await supprimerRequeteStaff(params.id as string);
+      router.push("/staff/requetes");
+    } catch (err: any) {
+      setError(err.response?.data?.message || "Erreur lors de la suppression");
+      setIsProcessing(false);
     }
   };
 
@@ -265,10 +308,19 @@ export default function RequeteDetail() {
                     <XCircle className="w-4 h-4" /> <span>Rejeter</span>
                   </button>
                 )}
-                
+
                 {!showReceptionner && !showAcheminer && !showValider && !showExecuter && !showCloturer && !showDemanderInfo && !showRejeter && !showExportCsv && (
-                  <p className="text-sm text-gray-500 dark:text-gray-400 italic">Aucune action disponible pour votre rôle à cette étape.</p>
+                  <p className="text-sm text-gray-500 dark:text-gray-400 italic">Aucune action de traitement disponible pour votre rôle à cette étape.</p>
                 )}
+              </div>
+              <div className="border-t border-gray-100 dark:border-gray-800 mt-4 pt-4">
+                <button
+                  onClick={handleSupprimer}
+                  disabled={isProcessing}
+                  className="flex items-center space-x-2 bg-white dark:bg-gray-800 border border-red-200 dark:border-red-900 hover:bg-red-50 dark:hover:bg-red-500/10 text-red-600 dark:text-red-400 px-4 py-2 rounded-lg font-medium transition-colors disabled:opacity-50"
+                >
+                  <Trash2 className="w-4 h-4" /> <span>Supprimer la requête</span>
+                </button>
               </div>
             </div>
           </div>
@@ -318,6 +370,25 @@ export default function RequeteDetail() {
                     </li>
                   ))}
                 </ul>
+              )}
+
+              {user?.role && ROLES_STAFF_UPLOAD.includes(user.role) && (
+                <div className="mt-4 pt-4 border-t border-gray-100 dark:border-gray-800">
+                  <FileDropzoneMulti
+                    label="Déposer le document final (visible par l'étudiant et le service suivant)"
+                    value={fichiersAEnvoyer}
+                    onChange={setFichiersAEnvoyer}
+                  />
+                  <button
+                    type="button"
+                    onClick={handleUploadDocument}
+                    disabled={fichiersAEnvoyer.length === 0 || isUploading}
+                    className="mt-3 flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors disabled:opacity-50"
+                  >
+                    <Upload className="w-4 h-4" />
+                    {isUploading ? "Envoi en cours..." : "Déposer le document"}
+                  </button>
+                </div>
               )}
             </div>
 

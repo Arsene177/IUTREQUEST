@@ -7,7 +7,7 @@ import ChatbotWidget from '@/components/ChatbotWidget';
 import { NotificationsListener } from '@/components/NotificationsListener';
 
 export const metadata: Metadata = {
-  title: 'JANNGO — IUT de Douala',
+  title: 'IutRequest — IUT de Douala',
   description: 'Système de gestion des requêtes étudiantes',
 };
 

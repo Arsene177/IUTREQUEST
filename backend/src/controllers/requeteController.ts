@@ -1,4 +1,5 @@
 import { Response } from 'express';
+import fs from 'fs';
 import pool from '../config/db';
 import { AuthRequest } from '../middlewares/authMiddleware';
 import { notifyRole, notifyUser } from '../services/notificationService';
@@ -519,6 +520,47 @@ export const getRequetesStaff = async (req: AuthRequest, res: Response): Promise
         pages: Math.ceil(totalRows[0].total / limit),
       },
     });
+  } catch (error) {
+    res.status(500).json({ message: 'Erreur serveur', error });
+  }
+};
+
+// DELETE /requetes/staff/:id
+// Suppression définitive par un membre du staff, réservée aux requêtes qui
+// le concernent (même règle que la lecture et les transitions). Le schéma
+// (ON DELETE CASCADE) supprime avec elle son historique, ses documents et
+// ses détails spécifiques — irréversible, d'où la confirmation exigée côté
+// frontend avant chaque appel.
+export const supprimerRequete = async (req: AuthRequest, res: Response): Promise<void> => {
+  const { id } = req.params;
+
+  try {
+    const [requetes]: any = await pool.execute('SELECT * FROM requete WHERE id = ?', [id]);
+    if (requetes.length === 0) {
+      res.status(404).json({ message: 'Requête introuvable' });
+      return;
+    }
+    const requete = requetes[0];
+
+    if (!(await isRequeteVisibleToRole(requete, req.user!.role))) {
+      res.status(403).json({ message: 'Cette requête ne concerne pas votre service' });
+      return;
+    }
+
+    const [documents]: any = await pool.execute(
+      'SELECT chemin FROM document WHERE requete_id = ?',
+      [id]
+    );
+
+    await pool.execute('DELETE FROM requete WHERE id = ?', [id]);
+
+    // Best-effort : les fichiers physiques ne sont pas couverts par le
+    // ON DELETE CASCADE (qui ne concerne que les lignes en base).
+    for (const doc of documents) {
+      fs.unlink(doc.chemin, () => {});
+    }
+
+    res.status(200).json({ message: 'Requête supprimée avec succès' });
   } catch (error) {
     res.status(500).json({ message: 'Erreur serveur', error });
   }

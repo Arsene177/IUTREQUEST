@@ -1,5 +1,6 @@
 import faqData from './faq.json';
 import { isGroqEnabled, queryGroqAI } from './groq-service';
+import pool from '../config/db';
 
 // Types
 export type ChatbotState =
@@ -59,6 +60,21 @@ export const processMessage = async (
   session.lastUpdated = Date.now();
   if (userId) session.userId = userId; // Update user ID if provided
 
+  // Récupère le prénom une seule fois par session (mis en cache dans le
+  // contexte) pour personnaliser l'accueil et les réponses — "Bonjour
+  // Arsène" plutôt qu'un "Bonjour" générique.
+  if (session.userId && session.context.prenom === undefined) {
+    try {
+      const [rows]: any = await pool.execute('SELECT prenom FROM users WHERE id = ?', [
+        session.userId,
+      ]);
+      session.context.prenom = rows[0]?.prenom ?? null;
+    } catch {
+      session.context.prenom = null;
+    }
+  }
+  const prenom: string | null = session.context.prenom ?? null;
+
   // Add user message to history
   if (message) {
     session.history.push({ role: 'user', content: message });
@@ -77,7 +93,7 @@ export const processMessage = async (
     containsKeywords(lowerMessage, ['menu', 'recommencer', 'accueil', 'retour au', 'revenir au'])
   ) {
     session.state = 'IDENTIFY_NEED';
-    botResponse = getMenuResponse();
+    botResponse = getMenuResponse(prenom);
     session.history.push(botResponse);
     return botResponse;
   }
@@ -88,7 +104,7 @@ export const processMessage = async (
     case 'GREETING':
       botResponse = {
         role: 'bot',
-        content: "Bonjour ! Je suis l'assistant virtuel de l'IUT. Comment puis-je vous aider aujourd'hui ?",
+        content: `Bonjour${prenom ? ' ' + prenom : ''} ! Je suis l'assistant virtuel de l'IUT. Comment puis-je vous aider aujourd'hui ?`,
         quickReplies: [
           'J\'ai une question (FAQ)',
           'Faire une requête d\'Effet académique',
@@ -131,7 +147,7 @@ export const processMessage = async (
       break;
 
     case 'FAQ_SEARCH':
-      botResponse = await answerFaqOrGroq(message);
+      botResponse = await answerFaqOrGroq(message, prenom);
       botResponse.quickReplies = ['Retour au menu'];
       break;
 
@@ -202,7 +218,7 @@ export const processMessage = async (
   return botResponse;
 };
 
-async function answerFaqOrGroq(query: string): Promise<ChatMessage> {
+async function answerFaqOrGroq(query: string, prenom?: string | null): Promise<ChatMessage> {
   const faqResponse = searchFAQ(query);
   if (faqResponse.content.startsWith('Voici ce que j\'ai trouvé')) {
     return faqResponse;
@@ -210,7 +226,7 @@ async function answerFaqOrGroq(query: string): Promise<ChatMessage> {
 
   if (isGroqEnabled()) {
     try {
-      const groqAnswer = await queryGroqAI(query);
+      const groqAnswer = await queryGroqAI(query, prenom ?? undefined);
       return {
         role: 'bot',
         content: groqAnswer
@@ -230,10 +246,10 @@ async function answerFaqOrGroq(query: string): Promise<ChatMessage> {
   };
 }
 
-function getMenuResponse(): ChatMessage {
+function getMenuResponse(prenom?: string | null): ChatMessage {
   return {
     role: 'bot',
-    content: 'Comment puis-je vous aider ?',
+    content: `Comment puis-je vous aider${prenom ? ', ' + prenom : ''} ?`,
     quickReplies: [
       'J\'ai une question (FAQ)',
       'Faire une requête d\'Effet académique',
@@ -243,11 +259,12 @@ function getMenuResponse(): ChatMessage {
   };
 }
 
-// Helpers for Guides
+// Helpers for Guides — chaque requête exige systématiquement une fiche de
+// requête, en plus du/des justificatif(s) propre(s) au type (cf. formulaires).
 function getGuideEffetAcademique(): ChatMessage {
   return {
     role: 'bot',
-    content: "Une requête d'Effet académique permet d'obtenir un document officiel : attestation de scolarité, relevé de notes, certificat ou autre document. Précisez le document souhaité et l'année académique concernée. Souhaitez-vous remplir le formulaire maintenant ?",
+    content: "Une requête d'Effet académique permet d'obtenir un document officiel : attestation de scolarité, relevé de notes, certificat ou autre document. Pièces à joindre : la fiche de requête et un justificatif (profil étudiant ou reçu de paiement). Précisez le document souhaité et l'année académique concernée. Souhaitez-vous remplir le formulaire maintenant ?",
     quickReplies: ['Remplir le formulaire', 'Retour au menu']
   };
 }
@@ -255,7 +272,7 @@ function getGuideEffetAcademique(): ChatMessage {
 function getGuideCorrectionNom(): ChatMessage {
   return {
     role: 'bot',
-    content: "Une requête de Correction de nom permet de modifier une erreur d'orthographe sur vos documents scolaires. Vous devrez fournir une pièce d'identité valide (carte d'identité, passeport). Souhaitez-vous remplir le formulaire maintenant ?",
+    content: "Une requête de Correction de nom permet de modifier une erreur d'orthographe sur vos documents scolaires. Pièces à joindre : la fiche de requête et un ou plusieurs justificatifs (CNI, acte de naissance). Souhaitez-vous remplir le formulaire maintenant ?",
     quickReplies: ['Remplir le formulaire', 'Retour au menu']
   };
 }
@@ -263,7 +280,7 @@ function getGuideCorrectionNom(): ChatMessage {
 function getGuideContestationNote(): ChatMessage {
   return {
     role: 'bot',
-    content: "Avant de soumettre une Contestation de note, assurez-vous d'avoir d'abord discuté avec votre professeur. Si le désaccord persiste, vous pouvez soumettre une requête officielle. Souhaitez-vous remplir le formulaire maintenant ?",
+    content: "Avant de soumettre une Contestation de note, assurez-vous d'avoir d'abord discuté avec votre professeur. Si le désaccord persiste, vous pouvez soumettre une requête officielle. Pièces à joindre : la fiche de requête et un ou plusieurs justificatifs (ex: copie corrigée). Souhaitez-vous remplir le formulaire maintenant ?",
     quickReplies: ['Remplir le formulaire', 'Retour au menu']
   };
 }

@@ -19,6 +19,18 @@ const fichiersJustificatifsSchema = z
   .min(1, "Veuillez ajouter au moins un fichier justificatif.")
   .max(5, "5 fichiers maximum.");
 
+// La fiche de requête (document distinct du/des justificatif(s)) est exigée
+// pour les 3 types de requête, quel que soit le nombre de justificatifs.
+const ficheRequeteSchema = z.instanceof(File, {
+  message: "Veuillez joindre la fiche de requête.",
+})
+  .refine((file) => file.size <= TAILLE_MAX_FICHIER_OCTETS, {
+    message: "Le fichier ne doit pas dépasser 5 Mo.",
+  })
+  .refine((file) => MIME_ACCEPTES.includes(file.type), {
+    message: "Format accepté : PDF, JPG ou PNG.",
+  });
+
 // ============================================================
 // Auth
 // ============================================================
@@ -73,14 +85,12 @@ export const effetAcademiqueSchema = z.object({
     "certificat",
     "autre",
   ]),
-  annee_academique_debut: z
+  annee_academique: z
     .string()
-    .regex(/^\d{4}$/, "Année invalide (ex: 2023)."),
-  annee_academique_fin: z
-    .string()
-    .regex(/^\d{4}$/, "Année invalide (ex: 2024)."),
+    .regex(/^\d{4}-\d{4}$/, "Veuillez sélectionner une année académique."),
   motif: z.string().max(1000).optional().or(z.literal("")),
   priorite: z.enum(["normale", "urgente"]),
+  fiche_requete: ficheRequeteSchema,
   justificatif: fichierJustificatifSchema,
 });
 export type EffetAcademiqueFormValues = z.infer<typeof effetAcademiqueSchema>;
@@ -97,6 +107,7 @@ export const correctionNomSchema = z.object({
     .min(10, "Veuillez expliquer brièvement l'origine de l'erreur (10 caractères min).")
     .max(1000),
   priorite: z.enum(["normale", "urgente"]),
+  fiche_requete: ficheRequeteSchema,
   justificatifs: fichiersJustificatifsSchema,
 });
 export type CorrectionNomFormValues = z.infer<typeof correctionNomSchema>;
@@ -120,6 +131,7 @@ export const contestationNoteSchema = z.object({
     .min(30, "Le motif doit faire au moins 30 caractères.")
     .max(1000),
   priorite: z.enum(["normale", "urgente"]),
+  fiche_requete: ficheRequeteSchema,
   justificatifs: fichiersJustificatifsSchema,
 });
 export type ContestationNoteFormValues = z.input<typeof contestationNoteSchema>;
@@ -130,12 +142,21 @@ export type ContestationNoteFormOutput = z.output<typeof contestationNoteSchema>
 // sans le justificatif : les documents déjà joints ne sont pas ré-exigés).
 // ============================================================
 
-export const effetAcademiqueEditSchema = effetAcademiqueSchema.omit({ justificatif: true });
+export const effetAcademiqueEditSchema = effetAcademiqueSchema.omit({
+  justificatif: true,
+  fiche_requete: true,
+});
 export type EffetAcademiqueEditFormValues = z.infer<typeof effetAcademiqueEditSchema>;
 
-export const correctionNomEditSchema = correctionNomSchema.omit({ justificatifs: true });
+export const correctionNomEditSchema = correctionNomSchema.omit({
+  justificatifs: true,
+  fiche_requete: true,
+});
 export type CorrectionNomEditFormValues = z.infer<typeof correctionNomEditSchema>;
 
-export const contestationNoteEditSchema = contestationNoteSchema.omit({ justificatifs: true });
+export const contestationNoteEditSchema = contestationNoteSchema.omit({
+  justificatifs: true,
+  fiche_requete: true,
+});
 export type ContestationNoteEditFormValues = z.input<typeof contestationNoteEditSchema>;
 export type ContestationNoteEditFormOutput = z.output<typeof contestationNoteEditSchema>;

@@ -14,7 +14,7 @@ import {
   Tooltip,
   ResponsiveContainer,
 } from "recharts";
-import { LayoutDashboard, FileText, CheckCircle, Clock, AlertCircle, AlertTriangle, TrendingUp } from "lucide-react";
+import { LayoutDashboard, FileText, CheckCircle, Clock, AlertCircle, AlertTriangle, TrendingUp, XCircle } from "lucide-react";
 import { useTheme } from "@/context/ThemeContext";
 import { STATUT_CONFIG, TYPE_CONFIG } from "@/lib/constants";
 
@@ -91,7 +91,7 @@ export default function DashboardPage() {
         {/* Stats Summary Cards — cliquables : renvoient vers /staff/requetes
             pré-filtrée par statut, pour retrouver rapidement "toutes les
             requêtes résolues", etc. */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-6">
           <button
             type="button"
             onClick={() => router.push('/staff/requetes')}
@@ -159,6 +159,20 @@ export default function DashboardPage() {
             </div>
             <div className="p-3 bg-green-50 dark:bg-green-500/10 text-green-600 dark:text-green-400 rounded-xl">
               <CheckCircle className="w-6 h-6" />
+            </div>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => router.push('/staff/requetes?statut=REJETEE')}
+            className="text-left bg-white dark:bg-gray-900 p-6 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-800 flex items-center justify-between hover:shadow-md hover:border-rose-200 dark:hover:border-rose-800 transition-all"
+          >
+            <div>
+              <p className="text-sm font-medium text-gray-500 dark:text-gray-400">Rejetées</p>
+              <h3 className="text-3xl font-bold text-rose-600 dark:text-rose-400 mt-2">{getStatusCount('REJETEE')}</h3>
+            </div>
+            <div className="p-3 bg-rose-50 dark:bg-rose-500/10 text-rose-600 dark:text-rose-400 rounded-xl">
+              <XCircle className="w-6 h-6" />
             </div>
           </button>
         </div>

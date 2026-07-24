@@ -3,8 +3,16 @@ import path from 'path';
 import fs from 'fs';
 import pool from '../config/db';
 import { AuthRequest } from '../middlewares/authMiddleware';
-import { notifyRole } from '../services/notificationService';
+import { notifyRole, notifyUser } from '../services/notificationService';
 import { canAccessRequete as checkAccesRequete } from '../utils/requeteAccess';
+
+/**
+ * Rôles staff autorisés à joindre un document à une requête, en plus de
+ * l'étudiant lui-même — la cellule informatique dépose le document final
+ * (ex: attestation corrigée) une fois son traitement terminé, pour qu'il
+ * soit visible par l'étudiant et le service suivant dans le circuit.
+ */
+const ROLES_STAFF_UPLOAD = ['cellule_informatique'];
 
 async function canAccessRequete(
   requeteId: string,
@@ -26,8 +34,9 @@ export const uploadDocument = async (req: AuthRequest, res: Response): Promise<v
       return;
     }
 
-    if (req.user!.role !== 'etudiant') {
-      res.status(403).json({ message: 'Seuls les étudiants peuvent joindre des documents' });
+    const estEtudiant = req.user!.role === 'etudiant';
+    if (!estEtudiant && !ROLES_STAFF_UPLOAD.includes(req.user!.role)) {
+      res.status(403).json({ message: 'Vous ne pouvez pas joindre de document à cette requête' });
       return;
     }
 
@@ -53,7 +62,7 @@ export const uploadDocument = async (req: AuthRequest, res: Response): Promise<v
       });
     }
 
-    if (requete.statut === 'ATTENTE_INFO') {
+    if (estEtudiant && requete.statut === 'ATTENTE_INFO') {
       await pool.execute('UPDATE requete SET statut = ? WHERE id = ?', ['EN_COURS', id]);
       await pool.execute(
         'INSERT INTO historique_statut (requete_id, ancien_statut, nouveau_statut, change_par, commentaire) VALUES (?, ?, ?, ?, ?)',
@@ -66,6 +75,27 @@ export const uploadDocument = async (req: AuthRequest, res: Response): Promise<v
         ]
       );
       await notifyRole('secretariat', Number(id), `Requête #${id} : dossier complété par l'étudiant.`);
+    }
+
+    if (!estEtudiant) {
+      // Le document final déposé par le staff (ex: cellule informatique)
+      // devient visible à l'étudiant et au service suivant dès l'upload —
+      // "acheminer" ici, c'est simplement le rendre visible à qui en a besoin.
+      await pool.execute(
+        'INSERT INTO historique_statut (requete_id, ancien_statut, nouveau_statut, change_par, commentaire) VALUES (?, ?, ?, ?, ?)',
+        [id, requete.statut, requete.statut, req.user!.id, 'Document déposé par le service en charge du dossier']
+      );
+      const [etudiantRows]: any = await pool.execute(
+        'SELECT user_id FROM etudiant WHERE id = ?',
+        [requete.etudiant_id]
+      );
+      if (etudiantRows.length > 0) {
+        await notifyUser(
+          etudiantRows[0].user_id,
+          Number(id),
+          `Un document a été ajouté à votre requête #${id}.`
+        );
+      }
     }
 
     res.status(201).json({

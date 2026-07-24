@@ -4,7 +4,7 @@ import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Header } from "@/components/layout/Header";
 import { RequeteFormShell } from "@/components/requetes/RequeteFormShell";
-import { TextField, TextAreaField, FileDropzoneMulti } from "@/components/ui";
+import { TextField, TextAreaField, FileDropzone, FileDropzoneMulti } from "@/components/ui";
 import { contestationNoteSchema, type ContestationNoteFormValues, type ContestationNoteFormOutput } from "@/lib/validation";
 import { useSubmitRequete } from "@/hooks/useSubmitRequete";
 import type { PayloadContestationNote } from "@/types";
@@ -31,7 +31,7 @@ export default function ContestationNotePage() {
       note_contestee: validated.note_contestee,
       motif_contestation: validated.motif_contestation,
     };
-    submit(payload, validated.justificatifs);
+    submit(payload, [validated.fiche_requete, ...validated.justificatifs]);
   };
 
   return (
@@ -78,6 +78,19 @@ export default function ContestationNotePage() {
           placeholder="Expliquez brièvement pourquoi vous contestez cette note……"
           error={errors.motif_contestation?.message}
           {...register("motif_contestation")}
+        />
+
+        <Controller
+          control={control}
+          name="fiche_requete"
+          render={({ field }) => (
+            <FileDropzone
+              label="Fiche de requête"
+              value={field.value ?? null}
+              onChange={field.onChange}
+              error={errors.fiche_requete?.message}
+            />
+          )}
         />
 
         <Controller

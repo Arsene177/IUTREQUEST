@@ -9,6 +9,20 @@ export const STATUT_CONFIG = {
   CLOTUREE: { label: "Clôturée", color: "#059669", bg: "#D1FAE5", border: "#10B981" },
 } as const;
 
+/**
+ * Options d'année académique pour les formulaires (ex: "2023-2024") — de 6
+ * ans en arrière (relevés/attestations plus anciens) à l'année suivante
+ * (anticipation de rentrée), la plus récente en premier.
+ */
+export const ANNEES_ACADEMIQUES: readonly string[] = (() => {
+  const anneeCourante = new Date().getFullYear();
+  const annees: string[] = [];
+  for (let debut = anneeCourante + 1; debut >= anneeCourante - 6; debut--) {
+    annees.push(`${debut}-${debut + 1}`);
+  }
+  return annees;
+})();
+
 export const TYPE_CONFIG = {
   effet_academique: { label: "Effet académique", icon: "" },
   correction_nom: { label: "Correction de nom", icon: "" },

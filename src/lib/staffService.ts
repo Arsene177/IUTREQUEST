@@ -76,6 +76,12 @@ export const transitionRequete = async (
   return response.data;
 };
 
+/** Suppression définitive — réservée aux requêtes visibles par le service connecté. */
+export const supprimerRequeteStaff = async (id: string | number): Promise<{ message: string }> => {
+  const response = await api.delete(`/requetes/staff/${id}`);
+  return response.data;
+};
+
 /** Télécharge le CSV d'une contestation de note (à transmettre à l'enseignant concerné). */
 export const exporterContestationCsv = async (id: string | number): Promise<void> => {
   const response = await api.get(`/requetes/staff/${id}/export-csv`, { responseType: 'blob' });
